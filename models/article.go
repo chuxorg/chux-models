@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/chuxorg/chux-datastore/db"
-	"github.com/chuxorg/chux-mondels/config"
+	"github.com/chuxorg/chux-models/config"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
