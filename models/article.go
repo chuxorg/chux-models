@@ -100,15 +100,14 @@ func NewArticleWithCustomURI(customURI string) (*Article, error) {
 		}
 	}
 
-	// Use the provided customURI instead of the one from the config
-	mongoConfig = db.MongoConfig{
-		CollectionName: "articles",
-		DatabaseName:   _cfg.MongoDB.Database,
-		URI:            customURI,
-		Timeout:        _cfg.MongoDB.Timeout,
-	}
-
-	mongoDB, err = db.NewMongoDB(mongoConfig)
+	// Use the provided config
+	mongoDB = db.New(
+		db.WithDatabaseName(_cfg.MongoDB.Database),
+		db.WithCollectionName(_cfg.MongoDB.Collection),
+		db.WithURI(_cfg.MongoDB.URI),
+		db.WithTimeout(_cfg.MongoDB.Timeout),
+	   )				
+	
 	if err != nil {
 		panic(fmt.Sprintf("failed to create a new MongoDB: %v", err))
 	}
