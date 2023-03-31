@@ -1,0 +1,6 @@
+logging:
+  level: info
+
+mongodb:
+  uri: "mongodb://production-uri:27017"
+  database: "chux-mongo"
