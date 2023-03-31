@@ -1,9 +1,9 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/csailer/chux-bizobj)](https://goreportcard.com/report/github.com/csailer/chux-bizobj)
-# chux-bizobj
+# chux-models
 
 
 ## Overview
-`chux-bizobj` is a `Golang` library designed to provide services with an easy-to-use and consistent interface for performing CRUD operations on various data models, 
+`chux-models` is a `Golang` library designed to provide services with an easy-to-use and consistent interface for performing CRUD operations on various data models, 
 such as Products, Articles, Users, and future models. The library enforces the business logic of the chux-* ecosystem and ensures data is validated before being persisted 
 into a data store. `chux-bizobj` is dependent on the [`chux-mongo`](https://github.com/csailer/chux-mongo) library for handling the connection and read/writes to/from MongoDB.
 
@@ -14,10 +14,10 @@ into a data store. `chux-bizobj` is dependent on the [`chux-mongo`](https://gith
 - Seamless integration with the chux-mongo library for MongoDB connectivity
 = Designed for use in the chux-* ecosystem
 ## Installation
-To install chux-bizobj, use the following command:
+To install chux-models, use the following command:
 
 ```sh
-go get github.com/csailer/chux-bizobj
+go get github.com/csailer/chux-models
 ```
 ## Usage
 To use `chux-bizobj` in your project, import the library and create instances of the desired data models. The library provides functions for creating, updating, deleting, and loading instances of the supported models.
@@ -28,7 +28,7 @@ Here's a simple example of how to use the Product model:
 package main
 
 import (
-    "github.com/csailer/chux-bizobj/models"
+    "github.com/csailer/chux-models/models"
 )
 
 func main() {
@@ -52,9 +52,9 @@ func main() {
 ```
 # Makefile
 
-- `make test` - Runs all tests in `chux-bizobj`.
+- `make test` - Runs all tests in `chux-models`.
 - `make test-models` - Only runs tests in the Models package.
-- `make test-release` - Commits, tags, and releases `chux-bizobj`  
+- `make test-release` - Commits, tags, and releases `chux-models`  
    &nbsp; 
    To release and version, pass in major and minor values on the command line. If either major or minor has a value, the patch number is set to zero. If neither major nor minor has a value, the patch number is incremented by 1.
    You can run the target with or without the MAJOR_VALUE and MINOR_VALUE variables, like this:
