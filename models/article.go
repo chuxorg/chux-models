@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/csailer/chux-bizobj/config"
-	"github.com/csailer/chux-mongo/db"
+	"github.com/chuxorg/chux-datastore/db"
+	"github.com/chuxorg/chux-mondels/config"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 

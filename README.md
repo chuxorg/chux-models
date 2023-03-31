@@ -1,12 +1,12 @@
-[![Test chux-bizobj](https://github.com/csailer/chux-models/actions/workflows/build_test.yaml/badge.svg)](https://github.com/csailer/chux-models/actions/workflows/build_test.yaml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/csailer/chux-bizobj)](https://goreportcard.com/report/github.com/csailer/chux-bizobj)
+[![Test chux-bizobj](https://github.com/chuxorg/chux-models/actions/workflows/build_test.yaml/badge.svg)](https://github.com/chuxorg/chux-models/actions/workflows/build_test.yaml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/chuxorg/chux-bizobj)](https://goreportcard.com/report/github.com/chuxorg/chux-bizobj)
 # chux-models
 
 
 ## Overview
 `chux-models` is a `Golang` library designed to provide services with an easy-to-use and consistent interface for performing CRUD operations on various data models, 
 such as Products, Articles, Users, and future models. The library enforces the business logic of the chux-* ecosystem and ensures data is validated before being persisted 
-into a data store. `chux-bizobj` is dependent on the [`chux-mongo`](https://github.com/csailer/chux-mongo) library for handling the connection and read/writes to/from MongoDB.
+into a data store. `chux-bizobj` is dependent on the [`chux-datastore`](https://github.com/chuxorg/chux-datastore) library for handling the connection and read/writes to/from MongoDB.
 
 ## Features
 - Consistent and straightforward interface for CRUD operations
@@ -18,7 +18,7 @@ into a data store. `chux-bizobj` is dependent on the [`chux-mongo`](https://gith
 To install chux-models, use the following command:
 
 ```sh
-go get github.com/csailer/chux-models
+go get github.com/chuxorg/chux-models
 ```
 ## Usage
 To use `chux-bizobj` in your project, import the library and create instances of the desired data models. The library provides functions for creating, updating, deleting, and loading instances of the supported models.
@@ -29,7 +29,7 @@ Here's a simple example of how to use the Product model:
 package main
 
 import (
-    "github.com/csailer/chux-models/models"
+    "github.com/chuxorg/chux-models/models"
 )
 
 func main() {

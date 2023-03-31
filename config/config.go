@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 
-	"github.com/csailer/chux-mongo/db"
+	"github.com/chuxorg/chux-datastore/db"
 	"github.com/spf13/viper"
 )
 
