@@ -1,102 +1,95 @@
 package models
 
 import (
-	"context"
 	"os"
 	"testing"
-	"time"
 
-	"github.com/benweissmann/memongo"
+	"github.com/chuxorg/chux-models/config"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func TestProductCRUD(t *testing.T) {
-	// Create instance of in-mem mongo
-	mongoServer, err := memongo.Start("4.0.5")
-	require.NoError(t, err)
-	defer mongoServer.Stop()
+// TestNew tests the New function with different options.
+func TestNew(t *testing.T) {
+	os.Setenv("APP_ENV", "test")
+	product := New()
 
-	// Set environment variable to use the in-memory MongoDB instance
-	os.Setenv("MONGO_URI", mongoServer.URI())
+	assert.NotNil(t, product)
+	assert.Equal(t, "testdb", product.GetDatabaseName())
+	assert.Equal(t, "testcollection", product.GetCollectionName())
+	assert.Equal(t, "mongodb://localhost:27017", product.GetURI())
 
-	client, err := mongo.NewClient(options.Client().ApplyURI(mongoServer.URI()))
-	require.NoError(t, err)
+	productWithLoggingLevel := New(WithLoggingLevel("debug"))
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	err = client.Connect(ctx)
-	require.NoError(t, err)
+	assert.NotNil(t, productWithLoggingLevel)
+	assert.Equal(t, "debug", _cfg.Logging.Level)
 
-	defer func() {
-		err = client.Disconnect(ctx)
-		assert.NoError(t, err)
-	}()
+	customConfig := config.BizObjConfig{
+		Logging: struct {
+			Level string `mapstructure:"level"`
+		}{
+			Level: "info",
+		},
+		DataStores: struct {
+			DataStoreMap map[string]config.DataStoreConfig `mapstructure:"dataStore"`
+		}{
+			DataStoreMap: map[string]config.DataStoreConfig{
+				"mongo": {
+					Target:         "mongo",
+					URI:            "mongodb://localhost:27017",
+					Timeout:        10,
+					DatabaseName:   "customdb",
+					CollectionName: "customcollection",
+				},
+			},
+		},
+	}
 
-	product, err := NewProductWithCustomURI(mongoServer.URI())
-	require.NoError(t, err)
+	productWithCustomConfig := New(WithBizObjConfig(customConfig))
 
-	assert.NotNil(t, product, "NewProduct should return a non-nil Product")
-	assert.True(t, product.IsNew(), "NewProduct should return a Product with isNew set to true")
-	assert.False(t, product.IsDirty(), "NewProduct should return a Product with isDirty set to false")
-	assert.False(t, product.isDeleted, "NewProduct should return a Product with isDeleted set to false")
+	assert.NotNil(t, productWithCustomConfig)
+	assert.Equal(t, "customdb", productWithCustomConfig.GetDatabaseName())
+	assert.Equal(t, "customcollection", productWithCustomConfig.GetCollectionName())
+	assert.Equal(t, "mongodb://localhost:27017", productWithCustomConfig.GetURI())
+}
 
-	// Insert a new product
-	product.Name = "Test Product"
-	product.SKU = "12345"
-	product.Brand = "Test Brand"
+// TestWithLoggingLevel tests the WithLoggingLevel function.
+func TestWithLoggingLevel(t *testing.T) {
+	product := &Product{}
+	withLoggingLevel := WithLoggingLevel("error")
+	withLoggingLevel(product)
 
-	err = product.Save()
-	require.NoError(t, err)
-	require.False(t, product.IsNew())
-	require.False(t, product.IsDirty())
+	assert.Equal(t, "error", _cfg.Logging.Level)
+}
 
-	// Load the product by ID
-	loadedProductInterface, err := product.Load(product.ID.Hex())
-	require.NoError(t, err)
+// TestWithBizObjConfig tests the WithBizObjConfig function.
+func TestWithBizObjConfig(t *testing.T) {
+	customConfig := config.BizObjConfig{
+		Logging: struct {
+			Level string `mapstructure:"level"`
+		}{
+			Level: "warning",
+		},
+		DataStores: struct {
+			DataStoreMap map[string]config.DataStoreConfig `mapstructure:"dataStore"`
+		}{
+			DataStoreMap: map[string]config.DataStoreConfig{
+				"mongo": {
+					Target:         "mongo",
+					URI:            "mongodb://localhost:27017",
+					Timeout:        10,
+					DatabaseName:   "customdb",
+					CollectionName: "customcollection",
+				},
+			},
+		},
+	}
 
-	loadedProduct, ok := loadedProductInterface.(*Product)
-	require.True(t, ok)
+	product := &Product{}
+	withBizObjConfig := WithBizObjConfig(customConfig)
+	withBizObjConfig(product)
 
-	assert.Equal(t, product.Name, loadedProduct.Name)
-	assert.Equal(t, product.SKU, loadedProduct.SKU)
-	assert.Equal(t, product.Brand, loadedProduct.Brand)
-
-	// Update the product
-	loadedProduct.Name = "Updated Test Product"
-
-	err = loadedProduct.Save()
-	require.NoError(t, err)
-	require.False(t, product.isDeleted)
-	require.False(t, product.IsNew())
-	require.False(t, product.IsDirty())
-
-	// Load the updated product
-	updatedProductInterface, err := product.Load(loadedProduct.ID.Hex())
-	require.NoError(t, err)
-	require.False(t, product.isDeleted)
-	require.False(t, product.IsNew())
-	require.False(t, product.IsDirty())
-
-	updatedProduct, ok := updatedProductInterface.(*Product)
-	require.True(t, ok)
-
-	assert.Equal(t, "Updated Test Product", updatedProduct.Name)
-
-	// Delete the product
-	err = updatedProduct.Delete()
-	require.NoError(t, err)
-	assert.True(t, updatedProduct.isDeleted)
-
-	err = updatedProduct.Save()
-	require.NoError(t, err)
-	require.False(t, product.isDeleted)
-	require.True(t, product.IsNew())
-	require.False(t, product.IsDirty())
-	// Try to load the deleted product
-	deletedProductInterface, err := product.Load(updatedProduct.ID.Hex())
-	require.Error(t, err)
-	assert.Nil(t, deletedProductInterface)
+	assert.Equal(t, "warning", _cfg.Logging.Level)
+	assert.Equal(t, "customdb", _cfg.DataStores.DataStoreMap["mongo"].DatabaseName)
+	assert.Equal(t, "customcollection", _cfg.DataStores.DataStoreMap["mongo"].CollectionName)
+	assert.Equal(t, "mongodb://localhost:27017", _cfg.DataStores.DataStoreMap["mongo"].URI)
 }

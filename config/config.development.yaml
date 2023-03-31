@@ -1,7 +1,17 @@
 logging:
   level: debug
 
-mongodb:
-  uri: "mongodb://localhost:27017"
-  database: "chux-mongo"
-  timeout: 10
+dataStores:
+  dataStore:
+    mongo:
+      uri: mongodb://localhost:27017
+      timeout: 30
+      databaseName: exampleDb
+      collectionName: exampleCollection
+    redis:
+      uri: redis://localhost:6379
+      timeout: 10
+      databaseName: ""
+      collectionName: ""
+
+

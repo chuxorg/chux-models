@@ -3,21 +3,34 @@ package config
 import (
 	"fmt"
 
-	"github.com/chuxorg/chux-datastore/db"
 	"github.com/spf13/viper"
 )
+
+type DataStoreConfig struct {
+	Target string `mapstructure:"target"`
+	URI string `mapstructure:"uri"`
+	Timeout int `mapstructure:"timeout"`
+	DatabaseName string `mapstructure:"databaseName"`
+	CollectionName string `mapstructure:"collectionName"`
+}
 
 type BizObjConfig struct {
 	Logging struct {
 		Level string `mapstructure:"level"`
 	} `mapstructure:"logging"`
 
-	MongoDB db.MongoConfig `mapstructure:"mongodb"`
+	DataStores struct{
+		// A map of data store configurations keyed by the data store name
+		// e.g., "mongo" or "redis"
+		DataStoreMap map[string]DataStoreConfig `mapstructure:"dataStore"`
+		
+	} `mapstructure:"dataStores"`
 }
+
 
 func LoadConfig(env string) (*BizObjConfig, error) {
 	viper.SetConfigType("yaml")
-	viper.SetConfigName(fmt.Sprintf("config.%s", env)) // e.g., config.development.yaml or config.production.yaml
+	viper.SetConfigName(fmt.Sprintf("config.%s.yaml", env)) // e.g., config.development.yaml or config.production.yaml
 	viper.AddConfigPath(".")                           // Look for config files in the current directory
 	viper.AddConfigPath("./config")                    // Look for config files in the config directory
 	viper.AddConfigPath("../config")
