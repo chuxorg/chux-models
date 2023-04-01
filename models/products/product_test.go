@@ -1,4 +1,4 @@
-package models
+package products
 
 import (
 	"os"
@@ -12,10 +12,9 @@ import (
 func TestNew(t *testing.T) {
 	os.Setenv("APP_ENV", "test")
 	product := New()
-
 	assert.NotNil(t, product)
 	assert.Equal(t, "testdb", product.GetDatabaseName())
-	assert.Equal(t, "testcollection", product.GetCollectionName())
+	assert.Equal(t, "products", product.GetCollectionName())
 	assert.Equal(t, "mongodb://localhost:27017", product.GetURI())
 
 	productWithLoggingLevel := New(WithLoggingLevel("debug"))
@@ -48,7 +47,7 @@ func TestNew(t *testing.T) {
 
 	assert.NotNil(t, productWithCustomConfig)
 	assert.Equal(t, "customdb", productWithCustomConfig.GetDatabaseName())
-	assert.Equal(t, "customcollection", productWithCustomConfig.GetCollectionName())
+	assert.Equal(t, "products", productWithCustomConfig.GetCollectionName())
 	assert.Equal(t, "mongodb://localhost:27017", productWithCustomConfig.GetURI())
 }
 
@@ -83,6 +82,20 @@ func TestWithBizObjConfig(t *testing.T) {
 			},
 		},
 	}
+
+	/*
+	    product := &Product{}: This line creates a new Product struct and assigns its address to the product variable. 
+		The & symbol is used to get the address of the newly created struct.
+
+    	withBizObjConfig := WithBizObjConfig(customConfig): This line calls the WithBizObjConfig function with a custom configuration 
+		(assumed to be of type config.BizObjConfig). 
+		The function returns a closure (a function with access to the variables from its parent scope) that takes 
+		a *Product as an argument. The closure is assigned to the withBizObjConfig variable.
+
+    	withBizObjConfig(product): This line calls the closure stored in the withBizObjConfig variable, passing in the product variable 
+		(which is a pointer to a Product struct). This closure sets the _cfg global variable to the custom configuration passed 
+		to the WithBizObjConfig function.
+	*/
 
 	product := &Product{}
 	withBizObjConfig := WithBizObjConfig(customConfig)

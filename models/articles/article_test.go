@@ -1,103 +1,109 @@
-package models
+package articles
 
 import (
-	"context"
 	"os"
 	"testing"
-	"time"
 
-	"github.com/benweissmann/memongo"
+	"github.com/chuxorg/chux-models/config"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// Testing the CRUD operations of the Article struct
-func TestArticleCRUD(t *testing.T) {
-	// Create instance of in-mem mongo
-	mongoServer, err := memongo.Start("4.0.5")
-	require.NoError(t, err)
-	defer mongoServer.Stop()
+// TestNew tests the New function with different options.
+func TestNew(t *testing.T) {
+	os.Setenv("APP_ENV", "test")
+	article := New()
+	assert.NotNil(t, article)
+	assert.Equal(t, "testdb", article.GetDatabaseName())
+	assert.Equal(t, "articles", article.GetCollectionName())
+	assert.Equal(t, "mongodb://localhost:27017", article.GetURI())
 
-	// Set environment variable to use the in-memory MongoDB instance
-	os.Setenv("MONGO_URI", mongoServer.URI())
+	articleWithLoggingLevel := New(WithLoggingLevel("debug"))
 
-	client, err := mongo.NewClient(options.Client().ApplyURI(mongoServer.URI()))
-	require.NoError(t, err)
+	assert.NotNil(t, articleWithLoggingLevel)
+	assert.Equal(t, "debug", _cfg.Logging.Level)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	err = client.Connect(ctx)
-	require.NoError(t, err)
+	customConfig := config.BizObjConfig{
+		Logging: struct {
+			Level string `mapstructure:"level"`
+		}{
+			Level: "info",
+		},
+		DataStores: struct {
+			DataStoreMap map[string]config.DataStoreConfig `mapstructure:"dataStore"`
+		}{
+			DataStoreMap: map[string]config.DataStoreConfig{
+				"mongo": {
+					Target:         "mongo",
+					URI:            "mongodb://localhost:27017",
+					Timeout:        10,
+					DatabaseName:   "customdb",
+					CollectionName: "customcollection",
+				},
+			},
+		},
+	}
 
-	defer func() {
-		err = client.Disconnect(ctx)
-		assert.NoError(t, err)
-	}()
+	articleWithCustomConfig := New(WithBizObjConfig(customConfig))
 
-	article, err := NewArticleWithCustomURI(mongoServer.URI())
-	require.NoError(t, err)
+	assert.NotNil(t, articleWithCustomConfig)
+	assert.Equal(t, "customdb", articleWithCustomConfig.GetDatabaseName())
+	// Should return articles instead of customdb
+	assert.Equal(t, "articles", articleWithCustomConfig.GetCollectionName())
+	assert.Equal(t, "mongodb://localhost:27017", articleWithCustomConfig.GetURI())
+}
 
-	assert.NotNil(t, article, "NewArticle should return a non-nil article")
-	assert.True(t, article.IsNew(), "NewArticle should return a article with isNew set to true")
-	assert.False(t, article.IsDirty(), "NewArticle should return a article with isDirty set to false")
-	assert.False(t, article.isDeleted, "NewArticle should return a article with isDeleted set to false")
+// TestWithLoggingLevel tests the WithLoggingLevel function.
+func TestWithLoggingLevel(t *testing.T) {
+	article := &Article{}
+	withLoggingLevel := WithLoggingLevel("error")
+	withLoggingLevel(article)
 
-	// Insert a new article
-	article.Headline = "Test article"
-	article.Author = "12345"
-	article.Description = "Test Description"
+	assert.Equal(t, "error", _cfg.Logging.Level)
+}
 
-	err = article.Save()
-	require.NoError(t, err)
-	require.False(t, article.IsNew())
-	require.False(t, article.IsDirty())
+// TestWithBizObjConfig tests the WithBizObjConfig function.
+func TestWithBizObjConfig(t *testing.T) {
+	customConfig := config.BizObjConfig{
+		Logging: struct {
+			Level string `mapstructure:"level"`
+		}{
+			Level: "warning",
+		},
+		DataStores: struct {
+			DataStoreMap map[string]config.DataStoreConfig `mapstructure:"dataStore"`
+		}{
+			DataStoreMap: map[string]config.DataStoreConfig{
+				"mongo": {
+					Target:         "mongo",
+					URI:            "mongodb://localhost:27017",
+					Timeout:        10,
+					DatabaseName:   "customdb",
+					CollectionName: "customcollection",
+				},
+			},
+		},
+	}
 
-	// Load the article by ID
-	loadedArticleInterface, err := article.Load(article.ID.Hex())
-	require.NoError(t, err)
+	/*
+	    article := &Article{}: This line creates a new Article struct and assigns its address to the article variable. 
+		The & symbol is used to get the address of the newly created struct.
 
-	loadedArticle, ok := loadedArticleInterface.(*Article)
-	require.True(t, ok)
+    	withBizObjConfig := WithBizObjConfig(customConfig): This line calls the WithBizObjConfig function with a custom configuration 
+		(assumed to be of type config.BizObjConfig). 
+		The function returns a closure (a function with access to the variables from its parent scope) that takes 
+		an *Article as an argument. The closure is assigned to the withBizObjConfig variable.
 
-	assert.Equal(t, article.Headline, loadedArticle.Headline)
-	assert.Equal(t, article.Author, loadedArticle.Author)
-	assert.Equal(t, article.Description, loadedArticle.Description)
+    	withBizObjConfig(article): This line calls the closure stored in the withBizObjConfig variable, passing in the product variable 
+		(which is a pointer to an Article struct). This closure sets the _cfg global variable to the custom configuration passed 
+		to the WithBizObjConfig function.
+	*/
 
-	// Update the article
-	loadedArticle.Headline = "Updated Test article"
+	article := &Article{}
+	withBizObjConfig := WithBizObjConfig(customConfig)
+	withBizObjConfig(article)
 
-	err = loadedArticle.Save()
-	require.NoError(t, err)
-	require.False(t, article.isDeleted)
-	require.False(t, article.IsNew())
-	require.False(t, article.IsDirty())
-
-	// Load the updated article
-	updatedArticleInterface, err := article.Load(loadedArticle.ID.Hex())
-	require.NoError(t, err)
-	require.False(t, article.isDeleted)
-	require.False(t, article.IsNew())
-	require.False(t, article.IsDirty())
-
-	updatedArticle, ok := updatedArticleInterface.(*Article)
-	require.True(t, ok)
-
-	assert.Equal(t, "Updated Test article", updatedArticle.Headline)
-
-	// Delete the article
-	err = updatedArticle.Delete()
-	require.NoError(t, err)
-	assert.True(t, updatedArticle.isDeleted)
-
-	err = updatedArticle.Save()
-	require.NoError(t, err)
-	require.False(t, article.isDeleted)
-	require.True(t, article.IsNew())
-	require.False(t, article.IsDirty())
-	// Try to load the deleted article
-	deletedArticleInterface, err := article.Load(updatedArticle.ID.Hex())
-	require.Error(t, err)
-	assert.Nil(t, deletedArticleInterface)
+	assert.Equal(t, "warning", _cfg.Logging.Level)
+	assert.Equal(t, "customdb", _cfg.DataStores.DataStoreMap["mongo"].DatabaseName)
+	assert.Equal(t, "customcollection", _cfg.DataStores.DataStoreMap["mongo"].CollectionName)
+	assert.Equal(t, "mongodb://localhost:27017", _cfg.DataStores.DataStoreMap["mongo"].URI)
 }

@@ -1,4 +1,4 @@
-package models
+package articles
 
 import (
 	"encoding/json"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/chuxorg/chux-datastore/db"
 	"github.com/chuxorg/chux-models/config"
+	"github.com/chuxorg/chux-models/models"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -16,15 +17,15 @@ type Article struct {
 	URL              string             `bson:"url"`
 	Probability      float64            `bson:"probability"`
 	Headline         string             `bson:"headline"`
-	DatePublished    CustomTime         `bson:"datePublished"`
+	DatePublished    models.CustomTime         `bson:"datePublished"`
 	DatePublishedRaw string             `bson:"datePublishedRaw"`
-	DateCreated      CustomTime         `bson:"dateCreated"`
-	DateModified     CustomTime         `bson:"dateModified"`
+	DateCreated      models.CustomTime         `bson:"dateCreated"`
+	DateModified     models.CustomTime         `bson:"dateModified"`
 	DateModifiedRaw  string             `bson:"dateModifiedRaw"`
 	Author           string             `bson:"author"`
 	AuthorsList      []string           `bson:"authorsList"`
 	InLanguage       string             `bson:"inLanguage"`
-	Breadcrumbs      []Breadcrumb       `bson:"breadcrumbs"`
+	Breadcrumbs      []models.Breadcrumb       `bson:"breadcrumbs"`
 	MainImage        string             `bson:"mainImage"`
 	Images           []string           `bson:"images"`
 	Description      string             `bson:"description"`
@@ -37,100 +38,54 @@ type Article struct {
 	originalState    *Article           `bson:"-"`
 }
 
-// Create the MongoDB from chux-mongo
-var mongoDB = &db.MongoDB{}
+var _cfg *config.BizObjConfig
+var mongoDB db.MongoDB
 
-// This builder func is to be used by apps that use chux-bizobj as a dependent
-func NewArticle(config config.BizObjConfig) (*Article, error) {
-	// Use the provided config
-	mongoConfig = db.MongoConfig{
-		CollectionName: "articles",
-		DatabaseName:   config.MongoDB.Database,
-		URI:            config.MongoDB.URI,
-		Timeout:        config.MongoDB.Timeout,
-	}
-	var err error
-	mongoDB, err = db.NewMongoDB(mongoConfig)
-	if err != nil {
-		panic(fmt.Sprintf("failed to create a new MongoDB: %v", err))
-	}
 
-	return &Article{
-		isDirty:   false,
-		isNew:     true,
-		isDeleted: false,
-	}, err
-}
-
-// This builder func is provided if the configuration is given
-// Locally to chux-bizobj by using the yml files in the config package
-// This func should not be used to build a Product if chux-bizobj
-// is a dependent of another library or application. In these
-// cases, use the NewArticle(config config.BizObjConfig) builder
-func NewArticleWithDefaultConfig() (*Article, error) {
-
+func New(options ...func(*Article)) *Article {
 	env := os.Getenv("APP_ENV")
 	if env == "" {
 		env = "development"
 	}
-
-	_cfg, err := config.LoadConfig(env)
+	var err error
+	_cfg, err = config.LoadConfig(env)
 	if err != nil {
-		panic(fmt.Sprintf("failed to load config: %v", err))
+		fmt.Println(err)
 	}
-	return NewArticleWithCustomURI(_cfg.MongoDB.URI)
+	article := &Article{}
+	for _, option := range options {
+		option(article)
+	}
+	return article
 }
 
-// This builder function was added to allow an adhoc URI to be issued to
-// `Article` this is necessary for unit tests and could be useful in
-// other edge use cases as well
-func NewArticleWithCustomURI(customURI string) (*Article, error) {
-
-	var err error
-
-	if _cfg == nil {
-		env := os.Getenv("APP_ENV")
-		if env == "" {
-			env = "development"
-		}
-
-		_cfg, err = config.LoadConfig(env)
-		if err != nil {
-			panic(fmt.Sprintf("failed to load config: %v", err))
-		}
+func WithLoggingLevel(level string) func(*Article) {
+	return func(product *Article) {
+		_cfg.Logging.Level = level
 	}
+}
 
-	// Use the provided config
-	mongoDB = db.New(
-		db.WithDatabaseName(_cfg.MongoDB.Database),
-		db.WithCollectionName(_cfg.MongoDB.Collection),
-		db.WithURI(_cfg.MongoDB.URI),
-		db.WithTimeout(_cfg.MongoDB.Timeout),
-	   )				
-	
-	if err != nil {
-		panic(fmt.Sprintf("failed to create a new MongoDB: %v", err))
+func WithBizObjConfig(config config.BizObjConfig) func(*Article) {
+	return func(product *Article) {
+		_cfg = &config
 	}
-
-	return &Article{
-		isDirty:   false,
-		isNew:     true,
-		isDeleted: false,
-	}, err
 }
 
 func (a *Article) GetCollectionName() string {
-	return mongoConfig.CollectionName
+	return "articles"
 }
 
 func (a *Article) GetDatabaseName() string {
-	return mongoConfig.DatabaseName
+	return _cfg.DataStores.DataStoreMap["mongo"].DatabaseName
 }
 
 func (a *Article) GetURI() string {
-	return mongoConfig.URI
+	return _cfg.DataStores.DataStoreMap["mongo"].URI
 }
 
+func (a *Article) GetID() primitive.ObjectID {
+	return a.ID
+}
 // If the Model has changes, will return true
 func (a *Article) IsDirty() bool {
 	if a.originalState == nil {
