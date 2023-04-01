@@ -1,35 +1,16 @@
-package models
+package products
 
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 
+	"github.com/chuxorg/chux-datastore/db"
 	"github.com/chuxorg/chux-models/config"
+	"github.com/chuxorg/chux-models/models"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
-
-type Offer struct {
-	Price        string `bson:"price"`
-	Currency     string `bson:"currency"`
-	Availability string `bson:"availability"`
-}
-
-type Breadcrumb struct {
-	Name string `bson:"name"`
-	Link string `bson:"link"`
-}
-
-type AdditionalProperty struct {
-	Name  string `bson:"name"`
-	Value string `bson:"value"`
-}
-
-type AggregateRating struct {
-	RatingValue float64 `bson:"ratingValue"`
-	BestRating  float64 `bson:"bestRating"`
-	ReviewCount int     `bson:"reviewCount"`
-}
 
 type Product struct {
 	ID                   primitive.ObjectID   `bson:"_id,omitempty"`
@@ -37,21 +18,21 @@ type Product struct {
 	CanonicalURL         string               `bson:"canonicalUrl"`
 	Probability          float64              `bson:"probability"`
 	Name                 string               `bson:"name"`
-	Offers               []Offer              `bson:"offers"`
+	Offers               []models.Offer              `bson:"offers"`
 	SKU                  string               `bson:"sku"`
 	MPN                  string               `bson:"mpn"`
 	Brand                string               `bson:"brand"`
-	Breadcrumbs          []Breadcrumb         `bson:"breadcrumbs"`
+	Breadcrumbs          []models.Breadcrumb         `bson:"breadcrumbs"`
 	MainImage            string               `bson:"mainImage"`
 	Images               []string             `bson:"images"`
 	Description          string               `bson:"description"`
 	DescriptionHTML      string               `bson:"descriptionHtml"`
-	AdditionalProperties []AdditionalProperty `bson:"additionalProperty"`
-	AggregateRating      AggregateRating      `bson:"aggregateRating"`
+	AdditionalProperties []models.AdditionalProperty `bson:"additionalProperty"`
+	AggregateRating      models.AggregateRating      `bson:"aggregateRating"`
 	Color                string               `bson:"color"`
 	Style                string               `bson:"style"`
-	DateCreated          CustomTime           `bson:"dateCreated"`
-	DateModified         CustomTime           `bson:"dateModified"`
+	DateCreated          models.CustomTime           `bson:"dateCreated"`
+	DateModified         models.CustomTime           `bson:"dateModified"`
 	isNew                bool                 `bson:"isNew"`
 	isDeleted            bool                 `bson:"isDeleted"`
 	isDirty              bool                 `bson:"isDirty"`
@@ -60,6 +41,7 @@ type Product struct {
 
 
 var _cfg *config.BizObjConfig
+var mongoDB db.MongoDB
 
 func New(options ...func(*Product)) *Product {
 	env := os.Getenv("APP_ENV")
@@ -69,7 +51,8 @@ func New(options ...func(*Product)) *Product {
 	var err error
 	_cfg, err = config.LoadConfig(env)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
+		return nil
 	}
 	product := &Product{}
 	for _, option := range options {
@@ -91,7 +74,7 @@ func WithBizObjConfig(config config.BizObjConfig) func(*Product) {
 }
 
 func (p *Product) GetCollectionName() string {
-	return _cfg.DataStores.DataStoreMap["mongo"].CollectionName
+	return "products"
 }
 
 func (p *Product) GetDatabaseName() string {
@@ -102,7 +85,9 @@ func (p *Product) GetURI() string {
 	return _cfg.DataStores.DataStoreMap["mongo"].URI
 }
 
-
+func (p *Product) GetID() primitive.ObjectID {
+	return p.ID
+}
 
 // If the Model has changes, will return true
 func (p *Product) IsDirty() bool {
@@ -119,6 +104,7 @@ func (p *Product) IsDirty() bool {
 	if err != nil {
 		return false
 	}
+
 	p.isDirty = string(originalBytes) != string(currentBytes)
 	return p.isDirty
 }

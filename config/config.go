@@ -33,7 +33,7 @@ func LoadConfig(env string) (*BizObjConfig, error) {
 	viper.SetConfigName(fmt.Sprintf("config.%s.yaml", env)) // e.g., config.development.yaml or config.production.yaml
 	viper.AddConfigPath(".")                           // Look for config files in the current directory
 	viper.AddConfigPath("./config")                    // Look for config files in the config directory
-	viper.AddConfigPath("../config")
+	viper.AddConfigPath("../../config")
 
 	err := viper.ReadInConfig()
 	if err != nil {
@@ -44,6 +44,11 @@ func LoadConfig(env string) (*BizObjConfig, error) {
 	err = viper.Unmarshal(&cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal configuration: %v", err)
+	}
+
+	// Make sure the DataStores and DataStoreMap are initialized
+	if cfg.DataStores.DataStoreMap == nil {
+		cfg.DataStores.DataStoreMap = make(map[string]DataStoreConfig)
 	}
 
 	return &cfg, nil
