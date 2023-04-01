@@ -25,7 +25,7 @@ type BizObjConfig struct {
 		DataStoreMap map[string]DataStoreConfig `mapstructure:"dataStore"`
 		
 	} `mapstructure:"dataStores"`
-}
+} 
 
 
 func LoadConfig(env string) (*BizObjConfig, error) {
