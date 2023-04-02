@@ -56,6 +56,9 @@ func New(options ...func(*Article)) *Article {
 	for _, option := range options {
 		option(article)
 	}
+	article.isNew = true
+	article.isDeleted = false
+	article.isDirty = false
 	return article
 }
 
