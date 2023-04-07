@@ -213,6 +213,14 @@ func (p *Product) SetState(json string) error {
 	return p.Deserialize([]byte(json))
 }
 
+// Sets the internal state of the model.
+func (p *Product) Parse(json string) error {
+	p.SetState(json)
+	p.isNew = true // this is a new model
+	return nil
+}
+
+
 func (p *Product) Search(args ...interface{}) ([]interface{}, error) {
 	return nil, nil
 }
