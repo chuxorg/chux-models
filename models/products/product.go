@@ -18,36 +18,35 @@ type GTIN struct {
 }
 
 type Product struct {
-	ID                   primitive.ObjectID   `bson:"_id,omitempty" json:"_id,omitempty"`
-	URL                  string               `bson:"url" json:"url"`
-	CanonicalURL         string               `bson:"canonicalUrl" json:"canonicalUrl"`
-	Probability          float64              `bson:"probability" json:"probability"`
-	Name                 string               `bson:"name" json:"name"`
-	Offers               []models.Offer       `bson:"offers" json:"offers"`
-	SKU                  string               `bson:"sku" json:"sku"`
-	MPN                  string               `bson:"mpn,omitempty" json:"mpn,omitempty"`
-	Brand                string               `bson:"brand,omitempty" json:"brand,omitempty"`
-	Breadcrumbs          []models.Breadcrumb  `bson:"breadcrumbs" json:"breadcrumbs"`
-	MainImage            string               `bson:"mainImage" json:"mainImage"`
-	Images               []string             `bson:"images" json:"images"`
-	Description          string               `bson:"description" json:"description"`
-	DescriptionHTML      string               `bson:"descriptionHtml" json:"descriptionHtml"`
+	ID                   primitive.ObjectID          `bson:"_id,omitempty" json:"_id,omitempty"`
+	URL                  string                      `bson:"url" json:"url"`
+	CanonicalURL         string                      `bson:"canonicalUrl" json:"canonicalUrl"`
+	Probability          float64                     `bson:"probability" json:"probability"`
+	Name                 string                      `bson:"name" json:"name"`
+	Offers               []models.Offer              `bson:"offers" json:"offers"`
+	SKU                  string                      `bson:"sku" json:"sku"`
+	MPN                  string                      `bson:"mpn,omitempty" json:"mpn,omitempty"`
+	Brand                string                      `bson:"brand,omitempty" json:"brand,omitempty"`
+	Breadcrumbs          []models.Breadcrumb         `bson:"breadcrumbs" json:"breadcrumbs"`
+	MainImage            string                      `bson:"mainImage" json:"mainImage"`
+	Images               []string                    `bson:"images" json:"images"`
+	Description          string                      `bson:"description" json:"description"`
+	DescriptionHTML      string                      `bson:"descriptionHtml" json:"descriptionHtml"`
 	AdditionalProperties []models.AdditionalProperty `bson:"additionalProperty" json:"additionalProperty"`
 	AggregateRating      models.AggregateRating      `bson:"aggregateRating" json:"aggregateRating"`
-	GTINs                []GTIN               `bson:"gtins,omitempty" json:"gtin,omitempty"`
-	Color                string               `bson:"color,omitempty" json:"color,omitempty"`
-	Style                string               `bson:"style,omitempty" json:"style,omitempty"`
+	GTINs                []GTIN                      `bson:"gtins,omitempty" json:"gtin,omitempty"`
+	Color                string                      `bson:"color,omitempty" json:"color,omitempty"`
+	Style                string                      `bson:"style,omitempty" json:"style,omitempty"`
 	DateCreated          models.CustomTime           `bson:"dateCreated,omitempty" json:"dateCreated,omitempty"`
 	DateModified         models.CustomTime           `bson:"dateModified,omitempty" json:"dateModified,omitempty"`
-	isNew                bool                 `bson:"isNew,omitempty" json:"isNew,omitempty"`
-	isDeleted            bool                 `bson:"isDeleted,omitempty" json:"isDeleted,omitempty"`
-	isDirty              bool                 `bson:"isDirty,omitempty" json:"isDirty,omitempty"`
-	originalState        *Product             `bson:"-" json:"-"`
+	isNew                bool                        `bson:"isNew,omitempty" json:"isNew,omitempty"`
+	isDeleted            bool                        `bson:"isDeleted,omitempty" json:"isDeleted,omitempty"`
+	isDirty              bool                        `bson:"isDirty,omitempty" json:"isDirty,omitempty"`
+	originalState        *Product                    `bson:"-" json:"-"`
 }
 
-
 var _cfg *config.BizObjConfig
-var mongoDB db.MongoDB
+var mongoDB *db.MongoDB
 
 func New(options ...func(*Product)) *Product {
 	env := os.Getenv("APP_ENV")
@@ -64,6 +63,13 @@ func New(options ...func(*Product)) *Product {
 	for _, option := range options {
 		option(product)
 	}
+
+	mongoDB = db.New(
+		db.WithURI(product.GetURI()),
+		db.WithDatabaseName(product.GetDatabaseName()),
+		db.WithCollectionName(product.GetCollectionName()),
+	)
+
 	product.isNew = true
 	product.isDeleted = false
 	product.isDirty = false
@@ -192,6 +198,10 @@ func (p *Product) Load(id string) (interface{}, error) {
 		return nil, fmt.Errorf("unable to set internal state")
 	}
 	p.SetState(serialized)
+	p.isNew = false
+	p.isDirty = false
+	p.isDeleted = false
+
 	return retVal, nil
 }
 
@@ -213,13 +223,13 @@ func (p *Product) SetState(json string) error {
 	return p.Deserialize([]byte(json))
 }
 
-// Sets the internal state of the model.
+// Sets the internal state of the model of a new Product
+// from a JSON String.
 func (p *Product) Parse(json string) error {
-	p.SetState(json)
+	err := p.SetState(json)
 	p.isNew = true // this is a new model
-	return nil
+	return err
 }
-
 
 func (p *Product) Search(args ...interface{}) ([]interface{}, error) {
 	return nil, nil
