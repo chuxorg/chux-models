@@ -19,3 +19,6 @@ changelog:
 	  fi; \
 	  PREVIOUS_TAG=$$TAG; \
 	done
+
+build:
+	go build ./...

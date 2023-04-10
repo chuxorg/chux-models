@@ -66,7 +66,7 @@ func New(options ...func(*Product)) *Product {
 
 	mongoDB = db.New(
 		db.WithURI(product.GetURI()),
-		db.WithDatabaseName(product.GetDatabaseName()),
+		db.WithDatabaseName(_cfg.DataStores.DataStoreMap["mongo"].DatabaseName),
 		db.WithCollectionName(product.GetCollectionName()),
 	)
 
