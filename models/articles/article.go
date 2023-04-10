@@ -3,6 +3,7 @@ package articles
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/chuxorg/chux-datastore/db"
@@ -13,34 +14,33 @@ import (
 
 // The Article struct represents an Article Document in MongoDB
 type Article struct {
-	ID               primitive.ObjectID `bson:"_id,omitempty"`
-	URL              string             `bson:"url"`
-	Probability      float64            `bson:"probability"`
-	Headline         string             `bson:"headline"`
-	DatePublished    models.CustomTime         `bson:"datePublished"`
-	DatePublishedRaw string             `bson:"datePublishedRaw"`
-	DateCreated      models.CustomTime         `bson:"dateCreated"`
-	DateModified     models.CustomTime         `bson:"dateModified"`
-	DateModifiedRaw  string             `bson:"dateModifiedRaw"`
-	Author           string             `bson:"author"`
-	AuthorsList      []string           `bson:"authorsList"`
-	InLanguage       string             `bson:"inLanguage"`
-	Breadcrumbs      []models.Breadcrumb       `bson:"breadcrumbs"`
-	MainImage        string             `bson:"mainImage"`
-	Images           []string           `bson:"images"`
-	Description      string             `bson:"description"`
-	ArticleBody      string             `bson:"articleBody"`
-	ArticleBodyHTML  string             `bson:"articleBodyHtml"`
-	CanonicalURL     string             `bson:"canonicalUrl"`
-	isNew            bool               `bson:"isNew"`
-	isDeleted        bool               `bson:"isDeleted"`
-	isDirty          bool               `bson:"isDirty"`
-	originalState    *Article           `bson:"-"`
+	ID               primitive.ObjectID  `bson:"_id,omitempty"`
+	URL              string              `bson:"url"`
+	Probability      float64             `bson:"probability"`
+	Headline         string              `bson:"headline"`
+	DatePublished    models.CustomTime   `bson:"datePublished"`
+	DatePublishedRaw string              `bson:"datePublishedRaw"`
+	DateCreated      models.CustomTime   `bson:"dateCreated"`
+	DateModified     models.CustomTime   `bson:"dateModified"`
+	DateModifiedRaw  string              `bson:"dateModifiedRaw"`
+	Author           string              `bson:"author"`
+	AuthorsList      []string            `bson:"authorsList"`
+	InLanguage       string              `bson:"inLanguage"`
+	Breadcrumbs      []models.Breadcrumb `bson:"breadcrumbs"`
+	MainImage        string              `bson:"mainImage"`
+	Images           []string            `bson:"images"`
+	Description      string              `bson:"description"`
+	ArticleBody      string              `bson:"articleBody"`
+	ArticleBodyHTML  string              `bson:"articleBodyHtml"`
+	CanonicalURL     string              `bson:"canonicalUrl"`
+	isNew            bool                `bson:"isNew"`
+	isDeleted        bool                `bson:"isDeleted"`
+	isDirty          bool                `bson:"isDirty"`
+	originalState    *Article            `bson:"-"`
 }
 
 var _cfg *config.BizObjConfig
-var mongoDB db.MongoDB
-
+var mongoDB *db.MongoDB
 
 func New(options ...func(*Article)) *Article {
 	env := os.Getenv("APP_ENV")
@@ -50,12 +50,20 @@ func New(options ...func(*Article)) *Article {
 	var err error
 	_cfg, err = config.LoadConfig(env)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
+		return nil
 	}
 	article := &Article{}
 	for _, option := range options {
 		option(article)
 	}
+
+	mongoDB = db.New(
+		db.WithURI(article.GetURI()),
+		db.WithDatabaseName(article.GetDatabaseName()),
+		db.WithCollectionName(article.GetCollectionName()),
+	)
+
 	article.isNew = true
 	article.isDeleted = false
 	article.isDirty = false
@@ -63,13 +71,13 @@ func New(options ...func(*Article)) *Article {
 }
 
 func WithLoggingLevel(level string) func(*Article) {
-	return func(product *Article) {
+	return func(article *Article) {
 		_cfg.Logging.Level = level
 	}
 }
 
 func WithBizObjConfig(config config.BizObjConfig) func(*Article) {
-	return func(product *Article) {
+	return func(article *Article) {
 		_cfg = &config
 	}
 }
@@ -89,6 +97,7 @@ func (a *Article) GetURI() string {
 func (a *Article) GetID() primitive.ObjectID {
 	return a.ID
 }
+
 // If the Model has changes, will return true
 func (a *Article) IsDirty() bool {
 	if a.originalState == nil {
@@ -104,6 +113,7 @@ func (a *Article) IsDirty() bool {
 	if err != nil {
 		return false
 	}
+
 	a.isDirty = string(originalBytes) != string(currentBytes)
 	return a.isDirty
 }
@@ -145,7 +155,7 @@ func (a *Article) Save() error {
 
 	// If the Article has been deleted, then this is a new Article
 	a.isNew = a.isDeleted
-	// little confusing but use the IsDirty() func to set isDirty field on the Article struct
+	// little confusing but use the IsDirty() func to set isDirty field on Article struct
 	a.isDirty = a.IsDirty()
 	a.isDeleted = false
 
@@ -175,13 +185,17 @@ func (a *Article) Load(id string) (interface{}, error) {
 	}
 	article, ok := retVal.(*Article)
 	if !ok {
-		return nil, fmt.Errorf("unable to cast retVal to *Product")
+		return nil, fmt.Errorf("unable to cast retVal to *Article")
 	}
 	serialized, err := article.Serialize()
 	if err != nil {
 		return nil, fmt.Errorf("unable to set internal state")
 	}
 	a.SetState(serialized)
+	a.isNew = false
+	a.isDirty = false
+	a.isDeleted = false
+
 	return retVal, nil
 }
 
@@ -201,6 +215,14 @@ func (a *Article) SetState(json string) error {
 
 	// Deserialize the new state
 	return a.Deserialize([]byte(json))
+}
+
+// Sets the internal state of the model of a new Product
+// from a JSON String.
+func (a *Article) Parse(json string) error {
+	err := a.SetState(json)
+	a.isNew = true // this is a new model
+	return err
 }
 
 func (a *Article) Search(args ...interface{}) ([]interface{}, error) {
