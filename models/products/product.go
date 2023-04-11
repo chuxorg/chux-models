@@ -139,10 +139,25 @@ func (p *Product) Exists() (bool, error) {
 // Saves the Model to a Data Store
 func (p *Product) Save() error {
 	if p.isNew {
-		//--Create a new document
-		err := mongoDB.Create(p)
+
+		exists, err := p.Exists()
 		if err != nil {
-			return err
+			return err // return the error
+		}
+		if !exists {
+			//-- This check that the product does not exist in the database.
+			//-- it is required because new products that come in from a parse
+			//-- run will bring in dupes, which we don't want to save.
+
+			//--Create a new document
+			err := mongoDB.Create(p)
+			if err != nil {
+				return err
+			}
+		} else {
+			p.isNew = false
+			p.isDirty = true
+			return p.Save()
 		}
 
 	} else if p.IsDirty() && !p.isDeleted {
