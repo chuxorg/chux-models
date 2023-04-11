@@ -3,7 +3,6 @@ package articles
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/chuxorg/chux-datastore/db"
@@ -47,12 +46,8 @@ func New(options ...func(*Article)) *Article {
 	if env == "" {
 		env = "development"
 	}
-	var err error
-	_cfg, err = config.LoadConfig(env)
-	if err != nil {
-		log.Fatal(err)
-		return nil
-	}
+
+	_cfg = config.New()
 	article := &Article{}
 	for _, option := range options {
 		option(article)
