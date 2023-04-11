@@ -129,7 +129,7 @@ func (p *Product) IsNew() bool {
 
 func (p *Product) Exists() (bool, error) {
 
-	docs, err := mongoDB.Query(p, "canonicalUrl", p.CanonicalURL)
+	docs, err := mongoDB.Query(p, "canonicalUrl", p.CanonicalURL, "description", p.Description)
 	if err != nil {
 		return false, err
 	}
