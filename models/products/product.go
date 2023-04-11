@@ -187,7 +187,7 @@ func (p *Product) Save() error {
 				fmt.Println(changes)
 			}
 		}
-		exists = len(products) > 0 && len(changes) > 0
+		exists = len(products) > 0
 		if !exists {
 			//-- This check that the product does not exist in the database.
 			//-- it is required because new products that come in from a parse
