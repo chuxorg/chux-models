@@ -53,15 +53,21 @@ func New(options ...func(*Product)) *Product {
 	if env == "" {
 		env = "development"
 	}
-	var err error
-	_cfg, err = config.LoadConfig(env)
-	if err != nil {
-		log.Fatal(err)
-		return nil
-	}
+
 	product := &Product{}
 	for _, option := range options {
 		option(product)
+	}
+
+	// if the config is not set, then load it.
+	// the config may be set in the WithBizObjConfig functions
+	if _cfg == nil {
+		var err error
+		_cfg, err = config.LoadConfig(env)
+		if err != nil {
+			log.Fatal(err)
+			return nil
+		}
 	}
 
 	mongoDB = db.New(
