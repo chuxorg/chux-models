@@ -199,10 +199,15 @@ func (p *Product) Save() error {
 				return err
 			}
 		} else {
-			p.isNew = false
-			p.isDirty = true
-			//-- this will cause an update to the document
-			return p.Save()
+			if len(changes) > 0 {
+				// The product could exist in Mongo yet changed on the website on the last crawl
+				// If it did, the product will be updated with the new data
+				p.isNew = false
+				p.isDirty = true
+				//-- this will cause an update to the document
+				//TODO: Set and Save Price History, Inventory History, and other data
+				return p.Save()
+			}
 		}
 
 	} else if p.IsDirty() && !p.isDeleted {
