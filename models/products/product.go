@@ -3,7 +3,6 @@ package products
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/chuxorg/chux-datastore/db"
@@ -54,20 +53,10 @@ func New(options ...func(*Product)) *Product {
 		env = "development"
 	}
 
+	_cfg = config.New()
 	product := &Product{}
 	for _, option := range options {
 		option(product)
-	}
-
-	// if the config is not set, then load it.
-	// the config may be set in the WithBizObjConfig functions
-	if _cfg == nil {
-		var err error
-		_cfg, err = config.LoadConfig(env)
-		if err != nil {
-			log.Fatal(err)
-			return nil
-		}
 	}
 
 	mongoDB = db.New(

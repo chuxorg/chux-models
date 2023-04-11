@@ -19,3 +19,7 @@ type BizObjConfig struct {
 		DataStoreMap map[string]DataStoreConfig `mapstructure:"dataStore"`
 	} `mapstructure:"dataStores"`
 }
+
+func New() *BizObjConfig {
+	return &BizObjConfig{}
+}
