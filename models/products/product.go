@@ -178,6 +178,7 @@ func (p *Product) Save() error {
 		if len(products) > 0 {
 			product := products[0].(*Product)
 			var err error
+			p.ID = product.ID
 			changes, err = CompareProducts(*product, *p)
 			if err != nil {
 				return err
