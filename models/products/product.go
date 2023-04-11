@@ -157,6 +157,7 @@ func (p *Product) Save() error {
 		} else {
 			p.isNew = false
 			p.isDirty = true
+			//--this will cause an update to the document
 			return p.Save()
 		}
 
