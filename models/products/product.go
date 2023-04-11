@@ -63,6 +63,7 @@ func New(options ...func(*Product)) *Product {
 		db.WithURI(product.GetURI()),
 		db.WithDatabaseName(product.GetDatabaseName()),
 		db.WithCollectionName(product.GetCollectionName()),
+		db.WithTimeout(float(_cfg.DataStores.DataStoreMap["mongo"].Timeout)),
 	)
 
 	product.isNew = true
