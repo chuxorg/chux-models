@@ -127,6 +127,15 @@ func (p *Product) IsNew() bool {
 	return p.isNew
 }
 
+func (p *Product) Exists() (bool, error) {
+
+	docs, err := mongoDB.Query(p, "canonicalUrl", p.CanonicalURL)
+	if err != nil {
+		return false, err
+	}
+	return len(docs) > 0, nil
+}
+
 // Saves the Model to a Data Store
 func (p *Product) Save() error {
 	if p.isNew {
