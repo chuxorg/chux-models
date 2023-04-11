@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/chuxorg/chux-datastore/db"
 	"github.com/chuxorg/chux-models/config"
@@ -127,29 +128,71 @@ func (p *Product) IsNew() bool {
 	return p.isNew
 }
 
-func (p *Product) Exists() (bool, error) {
+func (p *Product) Exists() ([]db.IMongoDocument, error) {
 
 	docs, err := mongoDB.Query(p, "canonicalUrl", p.CanonicalURL, "description", p.Description)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
-	return len(docs) > 0, nil
+
+	return docs, nil
+}
+
+// CompareProducts takes two Product structs and compares their fields to see if anything has changed.
+// Returns a map containing the field names as keys and a tuple of the old and new values as the corresponding values.
+func CompareProducts(oldProduct, newProduct Product) (map[string][2]interface{}, error) {
+	changes := make(map[string][2]interface{})
+
+	v1 := reflect.ValueOf(oldProduct)
+	v2 := reflect.ValueOf(newProduct)
+
+	// Loop through the fields of the Product struct
+	for i := 0; i < v1.NumField(); i++ {
+		field1 := v1.Field(i)
+		field2 := v2.Field(i)
+
+		// Ignore unexported fields
+		if field1.CanInterface() && field2.CanInterface() {
+			// Compare field values
+			if !reflect.DeepEqual(field1.Interface(), field2.Interface()) {
+				fieldName := v1.Type().Field(i).Name
+				changes[fieldName] = [2]interface{}{field1.Interface(), field2.Interface()}
+			}
+		}
+	}
+
+	return changes, nil
 }
 
 // Saves the Model to a Data Store
 func (p *Product) Save() error {
-	if p.isNew {
 
-		exists, err := p.Exists()
+	if p.isNew {
+		var exists bool
+		changes := make(map[string][2]interface{})
+		products, err := p.Exists()
 		if err != nil {
 			return err // return the error
 		}
+
+		if len(products) > 0 {
+			product := products[0].(*Product)
+			var err error
+			changes, err = CompareProducts(*product, *p)
+			if err != nil {
+				return err
+			}
+			if len(changes) > 0 {
+				fmt.Println(changes)
+			}
+		}
+		exists = len(products) > 0 && len(changes) > 0
 		if !exists {
 			//-- This check that the product does not exist in the database.
 			//-- it is required because new products that come in from a parse
 			//-- run will bring in dupes, which we don't want to save.
 
-			//--Create a new document
+			//-- Create a new document
 			err := mongoDB.Create(p)
 			if err != nil {
 				return err
@@ -157,7 +200,7 @@ func (p *Product) Save() error {
 		} else {
 			p.isNew = false
 			p.isDirty = true
-			//--this will cause an update to the document
+			//-- this will cause an update to the document
 			return p.Save()
 		}
 
