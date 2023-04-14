@@ -1,4 +1,4 @@
-[![Test chux-models](https://github.com/chuxorg/chux-models/actions/workflows/build_test.yaml/badge.svg)](https://github.com/chuxorg/chux-models/actions/workflows/build_test.yaml)
+
 [![Go Report Card](https://goreportcard.com/badge/github.com/chuxorg/chux-models)](https://goreportcard.com/report/github.com/chuxorg/chux-models)
 # chux-models
 
