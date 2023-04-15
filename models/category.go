@@ -1,4 +1,4 @@
-package categories
+package models
 
 import (
 	"encoding/json"
@@ -9,7 +9,6 @@ import (
 	"github.com/chuxorg/chux-datastore/db"
 	"github.com/chuxorg/chux-models/config"
 	"github.com/chuxorg/chux-models/errors"
-	"github.com/chuxorg/chux-models/models"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -23,14 +22,13 @@ type Category struct {
 	isDeleted            bool                        `bson:"isDeleted,omitempty" json:"isDeleted,omitempty"`
 	isDirty              bool                        `bson:"isDirty,omitempty" json:"isDirty,omitempty"`
 	originalState        *Category                    `bson:"-" json:"-"`
-	DateCreated          models.CustomTime           `bson:"dateCreated,omitempty" json:"dateCreated,omitempty"`
-	DateModified         models.CustomTime           `bson:"dateModified,omitempty" json:"dateModified,omitempty"`
+	DateCreated          CustomTime           `bson:"dateCreated,omitempty" json:"dateCreated,omitempty"`
+	DateModified         CustomTime           `bson:"dateModified,omitempty" json:"dateModified,omitempty"`
 }
 
-var _cfg *config.BizObjConfig
-var mongoDB *db.MongoDB
 
-func New(options ...func(*Category)) *Category {
+
+func NewCategory(options ...func(*Category)) *Category {
 	env := os.Getenv("APP_ENV")
 	if env == "" {
 		env = "development"
@@ -55,14 +53,14 @@ func New(options ...func(*Category)) *Category {
 	return category
 }
 
-func WithLoggingLevel(level string) func(*Category) {
+func NewCategoryWithLoggingLevel(level string) func(*Category) {
 	return func(product *Category) {
 		_cfg.Logging.Level = level
 	}
 }
 
-func WithBizObjConfig(config config.BizObjConfig) func(*Category) {
-	return func(product *Category) {
+func NewCategoryWithBizObjConfig(config config.BizObjConfig) func(*Category) {
+	return func(category *Category) {
 		_cfg = &config
 	}
 }

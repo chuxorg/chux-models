@@ -1,4 +1,4 @@
-package products
+package models
 
 import (
 	"os"
@@ -11,15 +11,15 @@ import (
 // TestNew tests the New function with different options.
 func TestNew(t *testing.T) {
 	os.Setenv("APP_ENV", "test")
-	product := New()
-	assert.NotNil(t, product)
-	assert.Equal(t, "testdb", product.GetDatabaseName())
-	assert.Equal(t, "products", product.GetCollectionName())
-	assert.Equal(t, "mongodb://localhost:27017", product.GetURI())
+	article := New()
+	assert.NotNil(t, article)
+	assert.Equal(t, "testdb", article.GetDatabaseName())
+	assert.Equal(t, "articles", article.GetCollectionName())
+	assert.Equal(t, "mongodb://localhost:27017", article.GetURI())
 
-	productWithLoggingLevel := New(WithLoggingLevel("debug"))
+	articleWithLoggingLevel := New(WithLoggingLevel("debug"))
 
-	assert.NotNil(t, productWithLoggingLevel)
+	assert.NotNil(t, articleWithLoggingLevel)
 	assert.Equal(t, "debug", _cfg.Logging.Level)
 
 	customConfig := config.BizObjConfig{
@@ -43,19 +43,20 @@ func TestNew(t *testing.T) {
 		},
 	}
 
-	productWithCustomConfig := New(WithBizObjConfig(customConfig))
+	articleWithCustomConfig := New(WithBizObjConfig(customConfig))
 
-	assert.NotNil(t, productWithCustomConfig)
-	assert.Equal(t, "customdb", productWithCustomConfig.GetDatabaseName())
-	assert.Equal(t, "products", productWithCustomConfig.GetCollectionName())
-	assert.Equal(t, "mongodb://localhost:27017", productWithCustomConfig.GetURI())
+	assert.NotNil(t, articleWithCustomConfig)
+	assert.Equal(t, "customdb", articleWithCustomConfig.GetDatabaseName())
+	// Should return articles instead of customdb
+	assert.Equal(t, "articles", articleWithCustomConfig.GetCollectionName())
+	assert.Equal(t, "mongodb://localhost:27017", articleWithCustomConfig.GetURI())
 }
 
 // TestWithLoggingLevel tests the WithLoggingLevel function.
 func TestWithLoggingLevel(t *testing.T) {
-	product := &Product{}
+	article := &Article{}
 	withLoggingLevel := WithLoggingLevel("error")
-	withLoggingLevel(product)
+	withLoggingLevel(article)
 
 	assert.Equal(t, "error", _cfg.Logging.Level)
 }
@@ -84,22 +85,22 @@ func TestWithBizObjConfig(t *testing.T) {
 	}
 
 	/*
-	    product := &Product{}: This line creates a new Product struct and assigns its address to the product variable. 
+	    article := &Article{}: This line creates a new Article struct and assigns its address to the article variable. 
 		The & symbol is used to get the address of the newly created struct.
 
     	withBizObjConfig := WithBizObjConfig(customConfig): This line calls the WithBizObjConfig function with a custom configuration 
 		(assumed to be of type config.BizObjConfig). 
 		The function returns a closure (a function with access to the variables from its parent scope) that takes 
-		a *Product as an argument. The closure is assigned to the withBizObjConfig variable.
+		an *Article as an argument. The closure is assigned to the withBizObjConfig variable.
 
-    	withBizObjConfig(product): This line calls the closure stored in the withBizObjConfig variable, passing in the product variable 
-		(which is a pointer to a Product struct). This closure sets the _cfg global variable to the custom configuration passed 
+    	withBizObjConfig(article): This line calls the closure stored in the withBizObjConfig variable, passing in the product variable 
+		(which is a pointer to an Article struct). This closure sets the _cfg global variable to the custom configuration passed 
 		to the WithBizObjConfig function.
 	*/
 
-	product := &Product{}
+	article := &Article{}
 	withBizObjConfig := WithBizObjConfig(customConfig)
-	withBizObjConfig(product)
+	withBizObjConfig(article)
 
 	assert.Equal(t, "warning", _cfg.Logging.Level)
 	assert.Equal(t, "customdb", _cfg.DataStores.DataStoreMap["mongo"].DatabaseName)

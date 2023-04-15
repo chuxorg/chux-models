@@ -1,4 +1,4 @@
-package articles
+package models
 
 import (
 	"encoding/json"
@@ -9,6 +9,7 @@ import (
 	"github.com/chuxorg/chux-models/config"
 	"github.com/chuxorg/chux-models/errors"
 	"github.com/chuxorg/chux-models/models"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -19,15 +20,15 @@ type Article struct {
 	CompanyName	     string              `bson:"companyName, omitempty"`
 	Probability      float64             `bson:"probability"`
 	Headline         string              `bson:"headline"`
-	DatePublished    models.CustomTime   `bson:"datePublished"`
+	DatePublished    CustomTime   `bson:"datePublished"`
 	DatePublishedRaw string              `bson:"datePublishedRaw"`
-	DateCreated      models.CustomTime   `bson:"dateCreated"`
-	DateModified     models.CustomTime   `bson:"dateModified"`
+	DateCreated      CustomTime   `bson:"dateCreated"`
+	DateModified     CustomTime   `bson:"dateModified"`
 	DateModifiedRaw  string              `bson:"dateModifiedRaw"`
 	Author           string              `bson:"author"`
 	AuthorsList      []string            `bson:"authorsList"`
 	InLanguage       string              `bson:"inLanguage"`
-	Breadcrumbs      []models.Breadcrumb `bson:"breadcrumbs"`
+	Breadcrumbs      []Breadcrumb `bson:"breadcrumbs"`
 	MainImage        string              `bson:"mainImage"`
 	Images           []string            `bson:"images"`
 	Description      string              `bson:"description"`
@@ -43,7 +44,7 @@ type Article struct {
 var _cfg *config.BizObjConfig
 var mongoDB *db.MongoDB
 
-func New(options ...func(*Article)) *Article {
+func NewArticle(options ...func(*Article)) *Article {
 	env := os.Getenv("APP_ENV")
 	if env == "" {
 		env = "development"
@@ -67,13 +68,13 @@ func New(options ...func(*Article)) *Article {
 	return article
 }
 
-func WithLoggingLevel(level string) func(*Article) {
+func ArticleWithLoggingLevel(level string) func(*Article) {
 	return func(article *Article) {
 		_cfg.Logging.Level = level
 	}
 }
 
-func WithBizObjConfig(config config.BizObjConfig) func(*Article) {
+func ArticleWithBizObjConfig(config config.BizObjConfig) func(*Article) {
 	return func(article *Article) {
 		_cfg = &config
 	}

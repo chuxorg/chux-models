@@ -1,4 +1,4 @@
-package products
+package models
 
 import (
 	"encoding/json"
@@ -10,7 +10,6 @@ import (
 	"github.com/chuxorg/chux-models/config"
 	"github.com/chuxorg/chux-models/errors"
 	"github.com/chuxorg/chux-models/models"
-	"github.com/chuxorg/chux-models/models/categories"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -26,17 +25,17 @@ type Product struct {
 	CompanyName		  string                      	 `bson:"companyName, omitempty" json:"companyName"`
 	Probability          float64                     `bson:"probability" json:"probability"`
 	Name                 string                      `bson:"name" json:"name"`
-	Offers               []models.Offer              `bson:"offers" json:"offers"`
+	Offers               []Offer              `bson:"offers" json:"offers"`
 	SKU                  string                      `bson:"sku" json:"sku"`
 	MPN                  string                      `bson:"mpn,omitempty" json:"mpn,omitempty"`
 	Brand                string                      `bson:"brand,omitempty" json:"brand,omitempty"`
-	Breadcrumbs          []models.Breadcrumb         `bson:"breadcrumbs" json:"breadcrumbs"`
+	Breadcrumbs          []Breadcrumb         `bson:"breadcrumbs" json:"breadcrumbs"`
 	MainImage            string                      `bson:"mainImage" json:"mainImage"`
 	Images               []string                    `bson:"images" json:"images"`
 	Description          string                      `bson:"description" json:"description"`
 	DescriptionHTML      string                      `bson:"descriptionHtml" json:"descriptionHtml"`
-	AdditionalProperties []models.AdditionalProperty `bson:"additionalProperty" json:"additionalProperty"`
-	AggregateRating      models.AggregateRating      `bson:"aggregateRating" json:"aggregateRating"`
+	AdditionalProperties []AdditionalProperty `bson:"additionalProperty" json:"additionalProperty"`
+	AggregateRating      AggregateRating      `bson:"aggregateRating" json:"aggregateRating"`
 	GTINs                []GTIN                      `bson:"gtins,omitempty" json:"gtin,omitempty"`
 	Color                string                      `bson:"color,omitempty" json:"color,omitempty"`
 	Style                string                      `bson:"style,omitempty" json:"style,omitempty"`
@@ -49,10 +48,8 @@ type Product struct {
 	originalState        *Product                    `bson:"-" json:"-"`
 }
 
-var _cfg *config.BizObjConfig
-var mongoDB *db.MongoDB
 
-func New(options ...func(*Product)) *Product {
+func NewProduct(options ...func(*Product)) *Product {
 	env := os.Getenv("APP_ENV")
 	if env == "" {
 		env = "development"
@@ -77,13 +74,13 @@ func New(options ...func(*Product)) *Product {
 	return product
 }
 
-func WithLoggingLevel(level string) func(*Product) {
+func NewProductWithLoggingLevel(level string) func(*Product) {
 	return func(product *Product) {
 		_cfg.Logging.Level = level
 	}
 }
 
-func WithBizObjConfig(config config.BizObjConfig) func(*Product) {
+func NewProductWithBizObjConfig(config config.BizObjConfig) func(*Product) {
 	return func(product *Product) {
 		_cfg = &config
 	}
@@ -357,20 +354,20 @@ func (p *Product) Categorize() error {
 	if err != nil {
 		return errors.NewChuxModelsError("Product.GetUncategorized() Error querying database", err)
 	}
-
+	
 	for _, product := range products {
 		// -- Iterate over the product's breadcrumbs and create categories
-		createdCategories := make([]*categories.Category, len(product.(*Product).Breadcrumbs))
+		createdCategories := make([]*Category, len(product.(*Product).Breadcrumbs))
 
 		for index, breadcrumb := range product.(*Product).Breadcrumbs {
 			// -- Create a category document
-			category := categories.NewCategory(
-				WithBizObjConfig(*_cfg),
+			category := NewCategory(
+				NewCategoryWithBizObjConfig(*_cfg),
 			)
-			category.ProductID = product.(*Product).ID.Hex()
+			category.ProductID = product.(*Product).ID
 			category.Name = breadcrumb.Name
 			category.Index = index
-			category.ParentID = nil
+			category.ParentID = primitive.NewObjectID()
 			
 			err := category.Save()
 			if err != nil {
@@ -380,7 +377,11 @@ func (p *Product) Categorize() error {
 			createdCategories[index] = category
 		}
 
-		// -- Update the ParentID of created categories
+		/*
+			After all categories are created for a product, iterate over the created categories and set the ParentID accordingly. 
+			The ParentID of the first category in the list (index 0) will remain nil. 
+			This will help with the tree structure of the categories.
+		*/
 		for index, category := range createdCategories {
 			if index > 0 {
 				category.ParentID = createdCategories[index-1].ID
