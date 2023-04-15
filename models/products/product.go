@@ -268,10 +268,6 @@ func (p *Product) Save() error {
 	return nil
 }
 
-func ExtractCompanyName(s string) {
-	panic("unimplemented")
-}
-
 // Loads a Model from MongoDB by id
 func (p *Product) Load(id string) (interface{}, error) {
 	retVal, err := mongoDB.GetByID(p, id)
@@ -292,6 +288,15 @@ func (p *Product) Load(id string) (interface{}, error) {
 	p.isDeleted = false
 
 	return retVal, nil
+}
+
+func (p *Product) GetAll() ([]db.IMongoDocument, error) {
+	mongoDB := &db.MongoDB{}
+	products, err := mongoDB.GetAll(p)
+	if err != nil {
+		return nil, err
+	}
+	return products, nil
 }
 
 // Marks a Model for deletion from the Data Store
