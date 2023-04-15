@@ -199,13 +199,14 @@ func (p *Product) Save() error {
 			//-- it is required because new products that come in from a parse
 			//-- run will bring in dupes, which I don't want to save.
 
-			//-- Create a new document
+			// -- Set the company name
 			p.CompanyName, err = models.ExtractCompanyName(p.CanonicalURL)
-			if err != nil {
-				return err
+			if err != nil {				
+				return errors.NewChuxModelsError("Product.Save() Error extracting Product.CompanyName", err)
 			}
 			// -- Set the date created to now
 			p.DateCreated.Now()
+			//-- Create a new document
 			err := mongoDB.Create(p)
 			if err != nil {
 				return errors.NewChuxModelsError("Product.Save() Error creating Product in MongoDB", err)
@@ -226,7 +227,7 @@ func (p *Product) Save() error {
 		// Ensure the ID is a valid hex string representation of an ObjectID
 		_, err := primitive.ObjectIDFromHex(p.ID.Hex())
 		if err != nil {
-			return fmt.Errorf("invalid ObjectID: %v", err)
+			return errors.NewChuxModelsError("Product.Save() invalid ObjectID", err)
 		}
 		//--update this document
 		err = mongoDB.Update(p, p.ID.Hex())
@@ -257,7 +258,7 @@ func (p *Product) Save() error {
 		//--reset state
 		serialized, err = p.Serialize()
 		if err != nil {
-			return fmt.Errorf("unable to set internal state")
+			return errors.NewChuxModelsError("Product.Save() Error serializing Product.", err)
 		}
 		p.SetState(serialized)
 	}
