@@ -347,3 +347,11 @@ func (p *Product) Deserialize(jsonData []byte) error {
 	}
 	return nil
 }
+// GetUncategorizedProducts returns all products that are not categorized
+func (p *Product) GetUncategorizedProducts() ([]db.IMongoDocument, error) {
+	docs, err := mongoDB.Query(p, "isCatagorized", false)
+	if err != nil {
+		return nil, errors.NewChuxModelsError("Product.GetUncategorized() Error querying database", err)
+	}
+	return docs, nil
+}
