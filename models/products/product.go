@@ -8,6 +8,7 @@ import (
 
 	"github.com/chuxorg/chux-datastore/db"
 	"github.com/chuxorg/chux-models/config"
+	"github.com/chuxorg/chux-models/errors"
 	"github.com/chuxorg/chux-models/models"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -21,6 +22,7 @@ type Product struct {
 	ID                   primitive.ObjectID          `bson:"_id,omitempty" json:"_id,omitempty"`
 	URL                  string                      `bson:"url" json:"url"`
 	CanonicalURL         string                      `bson:"canonicalUrl" json:"canonicalUrl"`
+	CompanyName		  string                      	 `bson:"companyName, omitempty" json:"companyName"`
 	Probability          float64                     `bson:"probability" json:"probability"`
 	Name                 string                      `bson:"name" json:"name"`
 	Offers               []models.Offer              `bson:"offers" json:"offers"`
@@ -132,7 +134,7 @@ func (p *Product) Exists() ([]db.IMongoDocument, error) {
 
 	docs, err := mongoDB.Query(p, "canonicalUrl", p.CanonicalURL, "description", p.Description)
 	if err != nil {
-		return nil, err
+		return nil, errors.NewChuxModelsError("Product.Exists() Error querying database", err)
 	}
 
 	return docs, nil
@@ -172,16 +174,20 @@ func (p *Product) Save() error {
 		changes := make(map[string][2]interface{})
 		products, err := p.Exists()
 		if err != nil {
-			return err // return the error
+			return errors.NewChuxModelsError("Product.Save() Error checking if product exists", err)
 		}
 
 		if len(products) > 0 {
 			product := products[0].(*Product)
 			var err error
 			p.ID = product.ID
+			//-- The p.Exists() call above will return a slice of products if there are any
+			//-- that match the canonicalUrl and description. We need to compare the
+			//-- incoming product with the existing product to see if there are any
+			//-- changes. If there are, we need to update the existing product with
 			changes, err = CompareProducts(*product, *p)
 			if err != nil {
-				return err
+				return errors.NewChuxModelsError("Product.Save() Error comparing Products", err)
 			}
 			if len(changes) > 0 {
 				fmt.Println(changes)
@@ -189,18 +195,25 @@ func (p *Product) Save() error {
 		}
 		exists = len(products) > 0
 		if !exists {
-			//-- This check that the product does not exist in the database.
+			//-- This checks that the product does not exist in the database.
 			//-- it is required because new products that come in from a parse
-			//-- run will bring in dupes, which we don't want to save.
+			//-- run will bring in dupes, which I don't want to save.
 
+			// -- Set the company name
+			p.CompanyName, err = models.ExtractCompanyName(p.CanonicalURL)
+			if err != nil {				
+				return errors.NewChuxModelsError("Product.Save() Error extracting Product.CompanyName", err)
+			}
+			// -- Set the date created to now
+			p.DateCreated.Now()
 			//-- Create a new document
 			err := mongoDB.Create(p)
 			if err != nil {
-				return err
+				return errors.NewChuxModelsError("Product.Save() Error creating Product in MongoDB", err)
 			}
 		} else {
 			if len(changes) > 0 {
-				// The product could exist in Mongo yet changed on the website on the last crawl
+				// The product could exist in Mongo yet was changed on the website on the last crawl
 				// If it did, the product will be updated with the new data
 				p.isNew = false
 				p.isDirty = true
@@ -214,18 +227,18 @@ func (p *Product) Save() error {
 		// Ensure the ID is a valid hex string representation of an ObjectID
 		_, err := primitive.ObjectIDFromHex(p.ID.Hex())
 		if err != nil {
-			return fmt.Errorf("invalid ObjectID: %v", err)
+			return errors.NewChuxModelsError("Product.Save() invalid ObjectID", err)
 		}
 		//--update this document
 		err = mongoDB.Update(p, p.ID.Hex())
 		if err != nil {
-			return err
+			return errors.NewChuxModelsError("Product.Save() Error updating Product in MongoDB", err)
 		}
 	} else if p.isDeleted && !p.isNew {
 		//--delete the document
 		err := mongoDB.Delete(p, p.ID.Hex())
 		if err != nil {
-			return err
+			return errors.NewChuxModelsError("Product.Save() Error deleting Product in MongoDB", err)
 		}
 	}
 
@@ -245,12 +258,16 @@ func (p *Product) Save() error {
 		//--reset state
 		serialized, err = p.Serialize()
 		if err != nil {
-			return fmt.Errorf("unable to set internal state")
+			return errors.NewChuxModelsError("Product.Save() Error serializing Product.", err)
 		}
 		p.SetState(serialized)
 	}
 
 	return nil
+}
+
+func ExtractCompanyName(s string) {
+	panic("unimplemented")
 }
 
 // Loads a Model from MongoDB by id

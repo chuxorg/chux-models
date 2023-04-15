@@ -18,4 +18,5 @@ type IModel interface {
 	Delete() error
 	// Sets the internal state of the model.
 	setState(data []byte) error
+	
 }
