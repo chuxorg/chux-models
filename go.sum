@@ -1,7 +1,3 @@
-github.com/chuxorg/chux-datastore v1.2.1 h1:/okbD6aAamp0z48k52uN/sFIz8YMei8zyOCysbLr5rE=
-github.com/chuxorg/chux-datastore v1.2.1/go.mod h1:X80SGgvWdvMa1SBf2GaIUa7m4vQSSpMT1rujr/ohBmo=
-github.com/chuxorg/chux-datastore v1.2.2 h1:edhzjqMZVWOYHaG3kG5qXFKoq1IPlCQSImMFz7s6M4Y=
-github.com/chuxorg/chux-datastore v1.2.2/go.mod h1:X80SGgvWdvMa1SBf2GaIUa7m4vQSSpMT1rujr/ohBmo=
 github.com/chuxorg/chux-datastore v1.2.3 h1:COkc8HxcNyBC0agQsEmqczvdlHA/+n6Yloz8KyfP+H4=
 github.com/chuxorg/chux-datastore v1.2.3/go.mod h1:X80SGgvWdvMa1SBf2GaIUa7m4vQSSpMT1rujr/ohBmo=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
