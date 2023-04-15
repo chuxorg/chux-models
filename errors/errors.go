@@ -14,17 +14,17 @@ type ChuxModelsError struct {
 	// occurs.
 	// This message is used to provide
 	// more context to the error.
-	// The Err field contains the actual 
+	// The Err field contains the actual
 	// error that occurred.
-	Message string
-	InnerErr     error
+	Message  string
+	InnerErr error
 }
 
 // NewChuxParserError returns a new ChuxModelsError
 func NewChuxModelsError(message string, err error) *ChuxModelsError {
 	return &ChuxModelsError{
-		Message: message,
-		InnerErr:     err,
+		Message:  message,
+		InnerErr: err,
 	}
 }
 
@@ -38,11 +38,10 @@ func (e *ChuxModelsError) Unwrap() error {
 	return e.InnerErr
 }
 
-
 // handleError is a helper function that handles
-// errors occuring in chux-models. This means 
+// errors occuring in chux-models. This means
 // that it prints the error message and the
-// underlying error. It will also log the error	
+// underlying error. It will also log the error
 func handleError(err error) {
 	fmt.Printf("Error: %v\n", err)
 }

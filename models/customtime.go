@@ -36,7 +36,7 @@ func (ct *CustomTime) UnmarshalJSON(b []byte) error {
 	return err
 }
 
-func (ct *CustomTime) Now(){
-	
+func (ct *CustomTime) Now() {
+
 	ct.Time = time.Now()
 }

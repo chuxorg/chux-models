@@ -8,41 +8,37 @@ import (
 	"github.com/chuxorg/chux-datastore/db"
 	"github.com/chuxorg/chux-models/config"
 	"github.com/chuxorg/chux-models/errors"
-	"github.com/chuxorg/chux-models/models"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // The Article struct represents an Article Document in MongoDB
 type Article struct {
-	ID               primitive.ObjectID  `bson:"_id,omitempty"`
-	URL              string              `bson:"url"`
-	CompanyName	     string              `bson:"companyName, omitempty"`
-	Probability      float64             `bson:"probability"`
-	Headline         string              `bson:"headline"`
-	DatePublished    CustomTime   `bson:"datePublished"`
-	DatePublishedRaw string              `bson:"datePublishedRaw"`
-	DateCreated      CustomTime   `bson:"dateCreated"`
-	DateModified     CustomTime   `bson:"dateModified"`
-	DateModifiedRaw  string              `bson:"dateModifiedRaw"`
-	Author           string              `bson:"author"`
-	AuthorsList      []string            `bson:"authorsList"`
-	InLanguage       string              `bson:"inLanguage"`
-	Breadcrumbs      []Breadcrumb `bson:"breadcrumbs"`
-	MainImage        string              `bson:"mainImage"`
-	Images           []string            `bson:"images"`
-	Description      string              `bson:"description"`
-	ArticleBody      string              `bson:"articleBody"`
-	ArticleBodyHTML  string              `bson:"articleBodyHtml"`
-	CanonicalURL     string              `bson:"canonicalUrl"`
-	isNew            bool                `bson:"isNew"`
-	isDeleted        bool                `bson:"isDeleted"`
-	isDirty          bool                `bson:"isDirty"`
-	originalState    *Article            `bson:"-"`
+	ID               primitive.ObjectID `bson:"_id,omitempty"`
+	URL              string             `bson:"url"`
+	CompanyName      string             `bson:"companyName, omitempty"`
+	Probability      float64            `bson:"probability"`
+	Headline         string             `bson:"headline"`
+	DatePublished    CustomTime         `bson:"datePublished"`
+	DatePublishedRaw string             `bson:"datePublishedRaw"`
+	DateCreated      CustomTime         `bson:"dateCreated"`
+	DateModified     CustomTime         `bson:"dateModified"`
+	DateModifiedRaw  string             `bson:"dateModifiedRaw"`
+	Author           string             `bson:"author"`
+	AuthorsList      []string           `bson:"authorsList"`
+	InLanguage       string             `bson:"inLanguage"`
+	Breadcrumbs      []Breadcrumb       `bson:"breadcrumbs"`
+	MainImage        string             `bson:"mainImage"`
+	Images           []string           `bson:"images"`
+	Description      string             `bson:"description"`
+	ArticleBody      string             `bson:"articleBody"`
+	ArticleBodyHTML  string             `bson:"articleBodyHtml"`
+	CanonicalURL     string             `bson:"canonicalUrl"`
+	isNew            bool               `bson:"isNew"`
+	isDeleted        bool               `bson:"isDeleted"`
+	isDirty          bool               `bson:"isDirty"`
+	originalState    *Article           `bson:"-"`
 }
-
-var _cfg *config.BizObjConfig
-var mongoDB *db.MongoDB
 
 func NewArticle(options ...func(*Article)) *Article {
 	env := os.Getenv("APP_ENV")
@@ -127,8 +123,8 @@ func (a *Article) IsNew() bool {
 func (a *Article) Save() error {
 	if a.isNew {
 		//--Create a new document
-		var err error 
-		a.CompanyName, err = models.ExtractCompanyName(a.CanonicalURL)
+		var err error
+		a.CompanyName, err = ExtractCompanyName(a.CanonicalURL)
 		if err != nil {
 			return errors.NewChuxModelsError("Artilce.Save() error extracting company name", err)
 		}

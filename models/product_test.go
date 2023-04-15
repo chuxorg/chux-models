@@ -9,15 +9,15 @@ import (
 )
 
 // TestNew tests the New function with different options.
-func TestNew(t *testing.T) {
+func TestNewProduct(t *testing.T) {
 	os.Setenv("APP_ENV", "test")
-	product := New()
+	product := NewProduct()
 	assert.NotNil(t, product)
 	assert.Equal(t, "testdb", product.GetDatabaseName())
 	assert.Equal(t, "products", product.GetCollectionName())
 	assert.Equal(t, "mongodb://localhost:27017", product.GetURI())
 
-	productWithLoggingLevel := New(WithLoggingLevel("debug"))
+	productWithLoggingLevel := NewProduct(NewProductWithLoggingLevel("debug"))
 
 	assert.NotNil(t, productWithLoggingLevel)
 	assert.Equal(t, "debug", _cfg.Logging.Level)
@@ -43,7 +43,7 @@ func TestNew(t *testing.T) {
 		},
 	}
 
-	productWithCustomConfig := New(WithBizObjConfig(customConfig))
+	productWithCustomConfig := NewProduct(NewProductWithBizObjConfig(customConfig))
 
 	assert.NotNil(t, productWithCustomConfig)
 	assert.Equal(t, "customdb", productWithCustomConfig.GetDatabaseName())
@@ -52,16 +52,16 @@ func TestNew(t *testing.T) {
 }
 
 // TestWithLoggingLevel tests the WithLoggingLevel function.
-func TestWithLoggingLevel(t *testing.T) {
+func TestProductWithLoggingLevel(t *testing.T) {
 	product := &Product{}
-	withLoggingLevel := WithLoggingLevel("error")
+	withLoggingLevel := NewProductWithLoggingLevel("error")
 	withLoggingLevel(product)
 
 	assert.Equal(t, "error", _cfg.Logging.Level)
 }
 
 // TestWithBizObjConfig tests the WithBizObjConfig function.
-func TestWithBizObjConfig(t *testing.T) {
+func TestProductWithBizObjConfig(t *testing.T) {
 	customConfig := config.BizObjConfig{
 		Logging: struct {
 			Level string `mapstructure:"level"`
@@ -84,21 +84,21 @@ func TestWithBizObjConfig(t *testing.T) {
 	}
 
 	/*
-	    product := &Product{}: This line creates a new Product struct and assigns its address to the product variable. 
-		The & symbol is used to get the address of the newly created struct.
+			    product := &Product{}: This line creates a new Product struct and assigns its address to the product variable.
+				The & symbol is used to get the address of the newly created struct.
 
-    	withBizObjConfig := WithBizObjConfig(customConfig): This line calls the WithBizObjConfig function with a custom configuration 
-		(assumed to be of type config.BizObjConfig). 
-		The function returns a closure (a function with access to the variables from its parent scope) that takes 
-		a *Product as an argument. The closure is assigned to the withBizObjConfig variable.
+		    	withBizObjConfig := WithBizObjConfig(customConfig): This line calls the WithBizObjConfig function with a custom configuration
+				(assumed to be of type config.BizObjConfig).
+				The function returns a closure (a function with access to the variables from its parent scope) that takes
+				a *Product as an argument. The closure is assigned to the withBizObjConfig variable.
 
-    	withBizObjConfig(product): This line calls the closure stored in the withBizObjConfig variable, passing in the product variable 
-		(which is a pointer to a Product struct). This closure sets the _cfg global variable to the custom configuration passed 
-		to the WithBizObjConfig function.
+		    	withBizObjConfig(product): This line calls the closure stored in the withBizObjConfig variable, passing in the product variable
+				(which is a pointer to a Product struct). This closure sets the _cfg global variable to the custom configuration passed
+				to the WithBizObjConfig function.
 	*/
 
 	product := &Product{}
-	withBizObjConfig := WithBizObjConfig(customConfig)
+	withBizObjConfig := NewProductWithBizObjConfig(customConfig)
 	withBizObjConfig(product)
 
 	assert.Equal(t, "warning", _cfg.Logging.Level)

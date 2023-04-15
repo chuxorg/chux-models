@@ -85,17 +85,17 @@ func TestWithBizObjConfig(t *testing.T) {
 	}
 
 	/*
-	    article := &Article{}: This line creates a new Article struct and assigns its address to the article variable. 
-		The & symbol is used to get the address of the newly created struct.
+			    article := &Article{}: This line creates a new Article struct and assigns its address to the article variable.
+				The & symbol is used to get the address of the newly created struct.
 
-    	withBizObjConfig := WithBizObjConfig(customConfig): This line calls the WithBizObjConfig function with a custom configuration 
-		(assumed to be of type config.BizObjConfig). 
-		The function returns a closure (a function with access to the variables from its parent scope) that takes 
-		an *Article as an argument. The closure is assigned to the withBizObjConfig variable.
+		    	withBizObjConfig := WithBizObjConfig(customConfig): This line calls the WithBizObjConfig function with a custom configuration
+				(assumed to be of type config.BizObjConfig).
+				The function returns a closure (a function with access to the variables from its parent scope) that takes
+				an *Article as an argument. The closure is assigned to the withBizObjConfig variable.
 
-    	withBizObjConfig(article): This line calls the closure stored in the withBizObjConfig variable, passing in the product variable 
-		(which is a pointer to an Article struct). This closure sets the _cfg global variable to the custom configuration passed 
-		to the WithBizObjConfig function.
+		    	withBizObjConfig(article): This line calls the closure stored in the withBizObjConfig variable, passing in the product variable
+				(which is a pointer to an Article struct). This closure sets the _cfg global variable to the custom configuration passed
+				to the WithBizObjConfig function.
 	*/
 
 	article := &Article{}

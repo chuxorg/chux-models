@@ -13,20 +13,18 @@ import (
 )
 
 type Category struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty"`
-	ProductID primitive.ObjectID `bson:"product_id"`
-	Name      string             `bson:"name"`
-	Index     int                `bson:"index"`
-	ParentID  primitive.ObjectID `bson:"parent_id"`
-	isNew                bool                        `bson:"isNew,omitempty" json:"isNew,omitempty"`
-	isDeleted            bool                        `bson:"isDeleted,omitempty" json:"isDeleted,omitempty"`
-	isDirty              bool                        `bson:"isDirty,omitempty" json:"isDirty,omitempty"`
-	originalState        *Category                    `bson:"-" json:"-"`
-	DateCreated          CustomTime           `bson:"dateCreated,omitempty" json:"dateCreated,omitempty"`
-	DateModified         CustomTime           `bson:"dateModified,omitempty" json:"dateModified,omitempty"`
+	ID            primitive.ObjectID `bson:"_id,omitempty"`
+	ProductID     primitive.ObjectID `bson:"product_id"`
+	Name          string             `bson:"name"`
+	Index         int                `bson:"index"`
+	ParentID      primitive.ObjectID `bson:"parent_id"`
+	isNew         bool               `bson:"isNew,omitempty" json:"isNew,omitempty"`
+	isDeleted     bool               `bson:"isDeleted,omitempty" json:"isDeleted,omitempty"`
+	isDirty       bool               `bson:"isDirty,omitempty" json:"isDirty,omitempty"`
+	originalState *Category          `bson:"-" json:"-"`
+	DateCreated   CustomTime         `bson:"dateCreated,omitempty" json:"dateCreated,omitempty"`
+	DateModified  CustomTime         `bson:"dateModified,omitempty" json:"dateModified,omitempty"`
 }
-
-
 
 func NewCategory(options ...func(*Category)) *Category {
 	env := os.Getenv("APP_ENV")
@@ -241,11 +239,9 @@ func (c *Category) Save() error {
 	return nil
 }
 
-
-
 // Loads a Model from MongoDB by id
 func (c *Category) Load(id string) (interface{}, error) {
-	
+
 	retVal, err := mongoDB.GetByID(c, id)
 	if err != nil {
 		return nil, errors.NewChuxModelsError("Category.Load() Error loading Category from MongoDB", err)

@@ -22,3 +22,9 @@ changelog:
 
 build:
 	go build ./...
+
+format:
+	go fmt ./...
+
+lint:
+	golangci-lint run
