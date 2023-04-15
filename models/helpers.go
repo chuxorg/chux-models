@@ -36,7 +36,7 @@ func ExtractCompanyName(urlString string) (string, error) {
 }
 
 // Categorizes all products which are not already categorized
-func Categorize() error {
+func Categorize(cfg config.BizObjConfig) error {
 	// - Get all products that are not categorized
 	prd := NewProduct(
 		NewProductWithBizObjConfig(*_cfg),
