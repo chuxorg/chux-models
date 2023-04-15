@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+
+	"github.com/chuxorg/chux-models/errors"
 )
 
 func ExtractCompanyName(urlStr string) (string, error) {
@@ -21,6 +23,6 @@ func ExtractCompanyName(urlStr string) (string, error) {
 		// Return the second last part, which is the domain without the extension
 		return parts[len(parts)-2], nil
 	}
-
-	return "", fmt.Errorf("Could not extract domain from %s", urlStr)
+	msg := fmt.Sprintf("Could not extract company name from url: %s", urlStr)
+	return "", errors.NewChuxModelsError(msg, nil)
 }
