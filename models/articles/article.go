@@ -7,6 +7,7 @@ import (
 
 	"github.com/chuxorg/chux-datastore/db"
 	"github.com/chuxorg/chux-models/config"
+	"github.com/chuxorg/chux-models/errors"
 	"github.com/chuxorg/chux-models/models"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -15,6 +16,7 @@ import (
 type Article struct {
 	ID               primitive.ObjectID  `bson:"_id,omitempty"`
 	URL              string              `bson:"url"`
+	CompanyName	     string              `bson:"companyName, omitempty"`
 	Probability      float64             `bson:"probability"`
 	Headline         string              `bson:"headline"`
 	DatePublished    models.CustomTime   `bson:"datePublished"`
@@ -124,27 +126,37 @@ func (a *Article) IsNew() bool {
 func (a *Article) Save() error {
 	if a.isNew {
 		//--Create a new document
-		err := mongoDB.Create(a)
+		var err error 
+		a.CompanyName, err = models.ExtractCompanyName(a.CanonicalURL)
 		if err != nil {
-			return err
+			return errors.NewChuxModelsError("Artilce.Save() error extracting company name", err)
+		}
+		// Set the DateCreated to the current time
+		a.DateCreated.Now()
+		err = mongoDB.Create(a)
+		if err != nil {
+			errors.NewChuxModelsError("Artilce.Save() error creating Article", err)
 		}
 
 	} else if a.IsDirty() && !a.isDeleted {
 		// Ensure the ID is a valid hex string representation of an ObjectID
 		_, err := primitive.ObjectIDFromHex(a.ID.Hex())
 		if err != nil {
-			return fmt.Errorf("invalid ObjectID: %v", err)
+			msg := fmt.Sprintf("Artilce.Save() invalid ObjectID: %v", err)
+			return errors.NewChuxModelsError(msg, err)
 		}
+		// Set the DateModified to the current time
+		a.DateModified.Now()
 		//--update this document
 		err = mongoDB.Update(a, a.ID.Hex())
 		if err != nil {
-			return err
+			return errors.NewChuxModelsError("Artilce.Save() error updating Article", err)
 		}
 	} else if a.isDeleted && !a.isNew {
 		//--delete the document
 		err := mongoDB.Delete(a, a.ID.Hex())
 		if err != nil {
-			return err
+			return errors.NewChuxModelsError("Artilce.Save() error deleting Article", err)
 		}
 	}
 
@@ -164,7 +176,7 @@ func (a *Article) Save() error {
 		//--reset state
 		serialized, err = a.Serialize()
 		if err != nil {
-			return fmt.Errorf("unable to set internal state")
+			return errors.NewChuxModelsError("Artilce.Save() unable to set current state", err)
 		}
 		a.SetState(serialized)
 	}
@@ -176,15 +188,15 @@ func (a *Article) Save() error {
 func (a *Article) Load(id string) (interface{}, error) {
 	retVal, err := mongoDB.GetByID(a, id)
 	if err != nil {
-		return nil, err
+		return nil, errors.NewChuxModelsError("Artilce.Load() error loading Article", err)
 	}
 	article, ok := retVal.(*Article)
 	if !ok {
-		return nil, fmt.Errorf("unable to cast retVal to *Article")
+		return nil, errors.NewChuxModelsError("Artilce.Load() unable to cast retVal to *Article", err)
 	}
 	serialized, err := article.Serialize()
 	if err != nil {
-		return nil, fmt.Errorf("unable to set internal state")
+		return nil, errors.NewChuxModelsError("Artilce.Load() unable to serialize Article", err)
 	}
 	a.SetState(serialized)
 	a.isNew = false
@@ -217,7 +229,10 @@ func (a *Article) SetState(json string) error {
 func (a *Article) Parse(json string) error {
 	err := a.SetState(json)
 	a.isNew = true // this is a new model
-	return err
+	if err != nil {
+		return errors.NewChuxModelsError("Artilce.Parse() unable to parse article", err)
+	}
+	return nil
 }
 
 func (a *Article) Search(args ...interface{}) ([]interface{}, error) {
@@ -227,7 +242,7 @@ func (a *Article) Search(args ...interface{}) ([]interface{}, error) {
 func (a *Article) Serialize() (string, error) {
 	bytes, err := json.Marshal(a)
 	if err != nil {
-		return "", err
+		return "", errors.NewChuxModelsError("Artilce.Serialize() unable to serialize Article", err)
 	}
 	return string(bytes), nil
 }
@@ -235,7 +250,7 @@ func (a *Article) Serialize() (string, error) {
 func (a *Article) Deserialize(jsonData []byte) error {
 	err := json.Unmarshal(jsonData, a)
 	if err != nil {
-		return err
+		return errors.NewChuxModelsError("Artilce.Deserialize() unable to deserialize Article", err)
 	}
 	return nil
 }

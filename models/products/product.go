@@ -229,6 +229,8 @@ func (p *Product) Save() error {
 		if err != nil {
 			return errors.NewChuxModelsError("Product.Save() invalid ObjectID", err)
 		}
+		// -- Set the date modified to now
+		p.DateModified.Now()
 		//--update this document
 		err = mongoDB.Update(p, p.ID.Hex())
 		if err != nil {
