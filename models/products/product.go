@@ -10,6 +10,7 @@ import (
 	"github.com/chuxorg/chux-models/config"
 	"github.com/chuxorg/chux-models/errors"
 	"github.com/chuxorg/chux-models/models"
+	"github.com/chuxorg/chux-models/models/categories"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -347,11 +348,48 @@ func (p *Product) Deserialize(jsonData []byte) error {
 	}
 	return nil
 }
-// GetUncategorizedProducts returns all products that are not categorized
-func (p *Product) GetUncategorizedProducts() ([]db.IMongoDocument, error) {
-	docs, err := mongoDB.Query(p, "isCatagorized", false)
+
+// Categorizes all products which are not already categorized
+func (p *Product) Categorize() error {
+	// - Get all products that are not categorized
+	products, err := mongoDB.Query(p, "isCatagorized", false)
+
 	if err != nil {
-		return nil, errors.NewChuxModelsError("Product.GetUncategorized() Error querying database", err)
+		return errors.NewChuxModelsError("Product.GetUncategorized() Error querying database", err)
 	}
-	return docs, nil
+
+	for _, product := range products {
+		// -- Iterate over the product's breadcrumbs and create categories
+		createdCategories := make([]*categories.Category, len(product.(*Product).Breadcrumbs))
+
+		for index, breadcrumb := range product.(*Product).Breadcrumbs {
+			// -- Create a category document
+			category := categories.NewCategory(
+				WithBizObjConfig(*_cfg),
+			)
+			category.ProductID = product.(*Product).ID.Hex()
+			category.Name = breadcrumb.Name
+			category.Index = index
+			category.ParentID = nil
+			
+			err := category.Save()
+			if err != nil {
+				return errors.NewChuxModelsError("Product.Categorize() Error saving category", err)
+			}
+
+			createdCategories[index] = category
+		}
+
+		// -- Update the ParentID of created categories
+		for index, category := range createdCategories {
+			if index > 0 {
+				category.ParentID = createdCategories[index-1].ID
+				err := category.Save()
+				if err != nil {
+					return errors.NewChuxModelsError("Product.Categorize() Error updating category ParentID", err)
+				}
+			}
+		}
+	}
+	return nil
 }
