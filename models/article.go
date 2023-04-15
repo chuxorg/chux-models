@@ -64,13 +64,13 @@ func NewArticle(options ...func(*Article)) *Article {
 	return article
 }
 
-func ArticleWithLoggingLevel(level string) func(*Article) {
+func NewArticleWithLoggingLevel(level string) func(*Article) {
 	return func(article *Article) {
 		_cfg.Logging.Level = level
 	}
 }
 
-func ArticleWithBizObjConfig(config config.BizObjConfig) func(*Article) {
+func NewArticleWithBizObjConfig(config config.BizObjConfig) func(*Article) {
 	return func(article *Article) {
 		_cfg = &config
 	}
