@@ -40,7 +40,7 @@ func ExtractCompanyName(urlString string) (string, error) {
 func Categorize(cfg *config.BizObjConfig) error {
 	// - Get all products that are not categorized
 	prd := NewProduct(
-		WithBizObjConfig(*_cfg),
+		WithBizObjConfig(*cfg),
 	)
 	products, err := mongoDB.Query(prd, "isCatagorized", false)
 
