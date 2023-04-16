@@ -14,6 +14,8 @@ type IModel interface {
 	Save() error
 	// Loads a Model from the Data Store
 	Load(id string) (interface{}, error)
+	// Loads a Model from the Data Store based on a query
+	Query(args ...interface{}) ([]interface{}, error)
 	// Searches for items in the data store
 	Search(args ...interface{}) ([]interface{}, error)
 	// Deletes a Model from the Data Store

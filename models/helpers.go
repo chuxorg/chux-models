@@ -38,12 +38,13 @@ func ExtractCompanyName(urlString string) (string, error) {
 
 // Categorizes all products which are not already categorized
 func Categorize(cfg *config.BizObjConfig) error {
+	
 	// - Get all products that are not categorized
 	prd := NewProduct(
 		WithBizObjConfig(*cfg),
 	)
-	products, err := mongoDB.Query(prd, "isCategorized", false)
-	
+
+	products, err := prd.Query(prd, "isCategorized", false)
 	if err != nil {
 		return errors.NewChuxModelsError("Product.Categorize() Error querying database", err)
 	}
@@ -66,16 +67,11 @@ func Categorize(cfg *config.BizObjConfig) error {
 			if err != nil {
 				return errors.NewChuxModelsError("Product.Categorize() Error saving category", err)
 			}
-			
+			pd.IsCategorized = true
+			pd.CategoryID = category.ID
+			pd.Save()
 			createdCategories[index] = category
 		}
-		
-		pd.IsCategorized = true
-		pd.isNew = false
-		pd.isDirty = true
-		pd.isDeleted = false
-		pd.Save()
-		pd = nil
 		/*
 			After all categories are created for a product, iterate over the created categories and set the ParentID accordingly.
 			The ParentID of the first category in the list (index 0) will remain nil.

@@ -44,6 +44,7 @@ type Product struct {
 	isNew                bool                 `bson:"isNew,omitempty" json:"isNew,omitempty"`
 	isDeleted            bool                 `bson:"isDeleted,omitempty" json:"isDeleted,omitempty"`
 	isDirty              bool                 `bson:"isDirty,omitempty" json:"isDirty,omitempty"`
+	CategoryID           primitive.ObjectID   `bson:"categoryId,omitempty" json:"categoryId,omitempty"`
 	IsCategorized        bool                 `bson:"isCategorized" json:"isCategorized"`
 	originalState        *Product             `bson:"-" json:"-"`
 }
@@ -266,6 +267,17 @@ func (p *Product) Load(id string) (interface{}, error) {
 
 	return retVal, nil
 }
+
+func (p *Product) Query(args ...interface{}) ([]db.IMongoDocument, error) {
+    results, err := mongoDB.Query(p, args...)
+    if err != nil {
+        return nil, errors.NewChuxModelsError("Product.Query() Error occurred querying Products", err)
+    }
+
+    return results, nil
+}
+
+
 
 func (p *Product) GetAll() ([]db.IMongoDocument, error) {
 	mongoDB := &db.MongoDB{}
