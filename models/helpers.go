@@ -51,13 +51,13 @@ func Categorize(cfg *config.BizObjConfig) error {
 	for _, product := range products {
 		// -- Iterate over the product's breadcrumbs and create categories
 		createdCategories := make([]*Category, len(product.(*Product).Breadcrumbs))
-
+		pd := product.(*Product)
 		for index, breadcrumb := range product.(*Product).Breadcrumbs {
 			// -- Create a category document
 			category := NewCategory(
-				WithBizObjConfig(*_cfg),
+				WithBizObjConfig(*cfg),
 			)
-			category.ProductID = product.(*Product).ID
+			category.ProductID = pd.ID
 			category.Name = breadcrumb.Name
 			category.Index = index
 			category.ParentID = primitive.NewObjectID()
@@ -69,7 +69,7 @@ func Categorize(cfg *config.BizObjConfig) error {
 			
 			createdCategories[index] = category
 		}
-		pd := product.(*Product)
+		
 		pd.IsCategorized = true
 		pd.isNew = false
 		pd.isDirty = true
