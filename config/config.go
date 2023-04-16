@@ -8,18 +8,24 @@ type DataStoreConfig struct {
 	CollectionName string `mapstructure:"collectionName"`
 }
 
+type DataStoresConfig struct {
+	// A map of data store configurations keyed by the data store name
+	// e.g., "mongo" or "redis"
+	DataStoreMap map[string]DataStoreConfig `mapstructure:"dataStore"`
+}
+
 type BizObjConfig struct {
 	Logging struct {
 		Level string `mapstructure:"level"`
 	} `mapstructure:"logging"`
 
-	DataStores struct {
-		// A map of data store configurations keyed by the data store name
-		// e.g., "mongo" or "redis"
-		DataStoreMap map[string]DataStoreConfig `mapstructure:"dataStore"`
-	} `mapstructure:"dataStores"`
+	DataStores DataStoresConfig `mapstructure:"dataStores"`
 }
 
 func New() *BizObjConfig {
 	return &BizObjConfig{}
+}
+
+func NewDataStoreConfig() *DataStoreConfig {
+	return &DataStoreConfig{}
 }

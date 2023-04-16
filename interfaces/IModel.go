@@ -1,5 +1,7 @@
 package interfaces
 
+import "github.com/chuxorg/chux-models/config"
+
 // An Interface for Models that interact with a data store
 type IModel interface {
 	// If the Model has changes, will return true
@@ -17,5 +19,10 @@ type IModel interface {
 	// Deletes a Model from the Data Store
 	Delete() error
 	// Sets the internal state of the model.
-	setState(data []byte) error
+	SetState(json string) error
+	// Applies variations of constructor functions to the model
+	Apply(opts ...func(IModel))
+	SetLoggingLevel(level string)
+	SetBizObjConfig(config config.BizObjConfig)
+	SetDataStoresConfig(config config.DataStoresConfig)
 }

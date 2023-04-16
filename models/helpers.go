@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"net/url"
+	"reflect"
 	"strings"
 
 	"github.com/chuxorg/chux-datastore/db"
@@ -54,7 +55,7 @@ func Categorize(cfg config.BizObjConfig) error {
 		for index, breadcrumb := range product.(*Product).Breadcrumbs {
 			// -- Create a category document
 			category := NewCategory(
-				NewCategoryWithBizObjConfig(*_cfg),
+				WithBizObjConfig(*_cfg),
 			)
 			category.ProductID = product.(*Product).ID
 			category.Name = breadcrumb.Name
@@ -85,4 +86,30 @@ func Categorize(cfg config.BizObjConfig) error {
 		}
 	}
 	return nil
+}
+
+// CompareProducts takes two Product structs and compares their fields to see if anything has changed.
+// Returns a map containing the field names as keys and a tuple of the old and new values as the corresponding values.
+func CompareProducts(oldProduct, newProduct Product) (map[string][2]interface{}, error) {
+	changes := make(map[string][2]interface{})
+
+	v1 := reflect.ValueOf(oldProduct)
+	v2 := reflect.ValueOf(newProduct)
+
+	// Loop through the fields of the Product struct
+	for i := 0; i < v1.NumField(); i++ {
+		field1 := v1.Field(i)
+		field2 := v2.Field(i)
+
+		// Ignore unexported fields
+		if field1.CanInterface() && field2.CanInterface() {
+			// Compare field values
+			if !reflect.DeepEqual(field1.Interface(), field2.Interface()) {
+				fieldName := v1.Type().Field(i).Name
+				changes[fieldName] = [2]interface{}{field1.Interface(), field2.Interface()}
+			}
+		}
+	}
+
+	return changes, nil
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/chuxorg/chux-datastore/db"
 	"github.com/chuxorg/chux-models/config"
 	"github.com/chuxorg/chux-models/errors"
+	"github.com/chuxorg/chux-models/interfaces"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -40,7 +41,13 @@ type Article struct {
 	originalState    *Article           `bson:"-"`
 }
 
-func NewArticle(options ...func(*Article)) *Article {
+func NewArticle(opts ...func(interfaces.IModel)) *Article {
+	a := &Article{}
+	a.Apply(opts...)
+	return a
+}
+
+func (a *Article) Apply(opts ...func(interfaces.IModel)) {
 	env := os.Getenv("APP_ENV")
 	if env == "" {
 		env = "development"
@@ -48,8 +55,9 @@ func NewArticle(options ...func(*Article)) *Article {
 
 	_cfg = config.New()
 	article := &Article{}
-	for _, option := range options {
-		option(article)
+
+	for _, opt := range opts {
+		opt(a)
 	}
 
 	mongoDB = db.New(
@@ -61,19 +69,16 @@ func NewArticle(options ...func(*Article)) *Article {
 	article.isNew = true
 	article.isDeleted = false
 	article.isDirty = false
-	return article
 }
 
-func NewArticleWithLoggingLevel(level string) func(*Article) {
-	return func(article *Article) {
-		_cfg.Logging.Level = level
-	}
+func (a *Article) SetLoggingLevel(level string) {
+	_cfg.Logging.Level = level
 }
-
-func NewArticleWithBizObjConfig(config config.BizObjConfig) func(*Article) {
-	return func(article *Article) {
-		_cfg = &config
-	}
+func (a *Article) SetBizObjConfig(config config.BizObjConfig) {
+	_cfg = &config
+}
+func (a *Article) SetDataStoresConfig(config config.DataStoresConfig) {
+	_cfg.DataStores = config
 }
 
 func (a *Article) GetCollectionName() string {
