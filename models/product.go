@@ -44,7 +44,7 @@ type Product struct {
 	isNew                bool                 `bson:"isNew,omitempty" json:"isNew,omitempty"`
 	isDeleted            bool                 `bson:"isDeleted,omitempty" json:"isDeleted,omitempty"`
 	isDirty              bool                 `bson:"isDirty,omitempty" json:"isDirty,omitempty"`
-	isCategorized        bool                 `bson:"isCategorized,omitempty" json:"isCategorized,omitempty"`
+	IsCategorized        bool                 `bson:"isCategorized" json:"isCategorized"`
 	originalState        *Product             `bson:"-" json:"-"`
 }
 
@@ -182,7 +182,7 @@ func (p *Product) Save() error {
 			// -- Set the date created to now
 			p.DateCreated.Now()
 			// -- Set the category to uncategorized
-			p.isCategorized = false
+			p.IsCategorized = false
 			//-- Create a new document
 			err := mongoDB.Create(p)
 			if err != nil {
