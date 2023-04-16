@@ -1,8 +1,8 @@
 package interfaces
 
 import (
+	"github.com/chuxorg/chux-datasource/db"
 	"github.com/chuxorg/chux-models/config"
-	"github.com/csailer/chux-mongo/db"
 )
 
 // An Interface for Models that interact with a data store
