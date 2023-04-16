@@ -1,7 +1,7 @@
 package interfaces
 
 import (
-	"github.com/chuxorg/chux-datasource/db"
+	"github.com/chuxorg/chux-datastore/db"
 	"github.com/chuxorg/chux-models/config"
 )
 
