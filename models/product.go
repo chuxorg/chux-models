@@ -8,6 +8,7 @@ import (
 	"github.com/chuxorg/chux-datastore/db"
 	"github.com/chuxorg/chux-models/config"
 	"github.com/chuxorg/chux-models/errors"
+	"github.com/chuxorg/chux-models/interfaces"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -47,42 +48,45 @@ type Product struct {
 	originalState        *Product             `bson:"-" json:"-"`
 }
 
-func NewProduct(options ...func(*Product)) *Product {
+func NewProduct(opts ...func(interfaces.IModel)) *Product {
+	p := &Product{}
+	p.Apply(opts...)
+	return p
+}
+
+func (p *Product) Apply(opts ...func(interfaces.IModel)) {
 	env := os.Getenv("APP_ENV")
 	if env == "" {
 		env = "development"
 	}
 
 	_cfg = config.New()
-	product := &Product{}
-	for _, option := range options {
-		option(product)
+	
+	for _, opt := range opts {
+		opt(p)
 	}
 
 	mongoDB = db.New(
-		db.WithURI(product.GetURI()),
-		db.WithDatabaseName(product.GetDatabaseName()),
-		db.WithCollectionName(product.GetCollectionName()),
-		db.WithTimeout(float64(_cfg.DataStores.DataStoreMap["mongo"].Timeout)),
+		db.WithURI(p.GetURI()),
+		db.WithDatabaseName(p.GetDatabaseName()),
+		db.WithCollectionName(p.GetCollectionName()),
 	)
 
-	product.isNew = true
-	product.isDeleted = false
-	product.isDirty = false
-	return product
+	p.isNew = true
+	p.isDeleted = false
+	p.isDirty = false
 }
 
-func NewProductWithLoggingLevel(level string) func(*Product) {
-	return func(product *Product) {
-		_cfg.Logging.Level = level
-	}
+func (p *Product) SetLoggingLevel(level string) {
+	_cfg.Logging.Level = level
+}
+func (p *Product) SetBizObjConfig(config config.BizObjConfig) {
+	_cfg = &config
+}
+func (p *Product) SetDataStoresConfig(config config.DataStoresConfig) {
+	_cfg.DataStores = config
 }
 
-func NewProductWithBizObjConfig(config config.BizObjConfig) func(*Product) {
-	return func(product *Product) {
-		_cfg = &config
-	}
-}
 
 func (p *Product) GetCollectionName() string {
 	return "products"
