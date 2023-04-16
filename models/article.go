@@ -54,21 +54,20 @@ func (a *Article) Apply(opts ...func(interfaces.IModel)) {
 	}
 
 	_cfg = config.New()
-	article := &Article{}
-
+	
 	for _, opt := range opts {
 		opt(a)
 	}
 
 	mongoDB = db.New(
-		db.WithURI(article.GetURI()),
-		db.WithDatabaseName(article.GetDatabaseName()),
-		db.WithCollectionName(article.GetCollectionName()),
+		db.WithURI(a.GetURI()),
+		db.WithDatabaseName(a.GetDatabaseName()),
+		db.WithCollectionName(a.GetCollectionName()),
 	)
 
-	article.isNew = true
-	article.isDeleted = false
-	article.isDirty = false
+	a.isNew = true
+	a.isDeleted = false
+	a.isDirty = false
 }
 
 func (a *Article) SetLoggingLevel(level string) {
