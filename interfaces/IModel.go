@@ -1,6 +1,9 @@
 package interfaces
 
-import "github.com/chuxorg/chux-models/config"
+import (
+	"github.com/chuxorg/chux-models/config"
+	"github.com/csailer/chux-mongo/db"
+)
 
 // An Interface for Models that interact with a data store
 type IModel interface {
@@ -15,7 +18,7 @@ type IModel interface {
 	// Loads a Model from the Data Store
 	Load(id string) (interface{}, error)
 	// Loads a Model from the Data Store based on a query
-	Query(args ...interface{}) ([]interface{}, error)
+	Query(args ...interface{}) ([]db.IMongoDocument, error)
 	// Searches for items in the data store
 	Search(args ...interface{}) ([]interface{}, error)
 	// Deletes a Model from the Data Store

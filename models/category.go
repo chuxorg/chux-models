@@ -273,6 +273,16 @@ func (c *Category) Load(id string) (interface{}, error) {
 	return retVal, nil
 }
 
+func (c *Category) Query(args ...interface{}) ([]db.IMongoDocument, error) {
+    results, err := mongoDB.Query(c, args...)
+    if err != nil {
+        return nil, errors.NewChuxModelsError("Category.Query() Error occurred querying Categories", err)
+    }
+
+    return results, nil
+}
+
+
 // Marks a Model for deletion from the Data Store
 // when Save() is called, the Model will be deleted
 func (c *Category) Delete() error {

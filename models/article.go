@@ -207,6 +207,15 @@ func (a *Article) Load(id string) (interface{}, error) {
 	return retVal, nil
 }
 
+func (a *Article) Query(args ...interface{}) ([]db.IMongoDocument, error) {
+    results, err := mongoDB.Query(a, args...)
+    if err != nil {
+        return nil, errors.NewChuxModelsError("Article.Query() Error occurred querying Articles", err)
+    }
+
+    return results, nil
+}
+
 // Marks a Model for deletion from the Data Store
 // when Save() is called, the Model will be deleted
 func (a *Article) Delete() error {
