@@ -88,6 +88,9 @@ func Categorize(cfg *config.BizObjConfig) error {
 				if err != nil {
 					return errors.NewChuxModelsError("Product.Categorize() Error updating category ParentID", err)
 				}
+			}else{
+				category.ParentID = category.ID
+				category.Save()
 			}
 		}
 	}
