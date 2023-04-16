@@ -42,8 +42,8 @@ func Categorize(cfg *config.BizObjConfig) error {
 	prd := NewProduct(
 		WithBizObjConfig(*cfg),
 	)
-	products, err := mongoDB.Query(prd, "isCatagorized", false)
-
+	products, err := mongoDB.Query(prd, "IsCatagorized", false)
+	
 	if err != nil {
 		return errors.NewChuxModelsError("Product.GetUncategorized() Error querying database", err)
 	}
@@ -66,10 +66,16 @@ func Categorize(cfg *config.BizObjConfig) error {
 			if err != nil {
 				return errors.NewChuxModelsError("Product.Categorize() Error saving category", err)
 			}
-
+			
 			createdCategories[index] = category
 		}
-
+		pd := product.(*Product)
+		pd.IsCategorized = true
+		pd.isNew = false
+		pd.isDirty = true
+		pd.isDeleted = false
+		pd.Save()
+		pd = nil
 		/*
 			After all categories are created for a product, iterate over the created categories and set the ParentID accordingly.
 			The ParentID of the first category in the list (index 0) will remain nil.
