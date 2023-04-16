@@ -57,6 +57,7 @@ func Categorize(cfg *config.BizObjConfig) error {
 			category := NewCategory(
 				WithBizObjConfig(*cfg),
 			)
+			category.isNew = true // This is a new category
 			category.ProductID = pd.ID
 			category.Name = breadcrumb.Name
 			category.Index = index
