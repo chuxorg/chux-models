@@ -44,21 +44,21 @@ func (c *Category) Apply(opts ...func(interfaces.IModel)) {
 	}
 
 	_cfg = config.New()
-	category := &Category{}
+	
 	for _, option := range opts {
-		option(category)
+		option(c)
 	}
 
 	mongoDB = db.New(
-		db.WithURI(category.GetURI()),
-		db.WithDatabaseName(category.GetDatabaseName()),
-		db.WithCollectionName(category.GetCollectionName()),
+		db.WithURI(c.GetURI()),
+		db.WithDatabaseName(c.GetDatabaseName()),
+		db.WithCollectionName(c.GetCollectionName()),
 		db.WithTimeout(float64(_cfg.DataStores.DataStoreMap["mongo"].Timeout)),
 	)
 
-	category.isNew = true
-	category.isDeleted = false
-	category.isDirty = false
+	c.isNew = true
+	c.isDeleted = false
+	c.isDirty = false
 }
 
 // Sets the Logging Level
