@@ -44,7 +44,7 @@ type Product struct {
 	isNew                bool                 `bson:"isNew,omitempty" json:"isNew,omitempty"`
 	isDeleted            bool                 `bson:"isDeleted,omitempty" json:"isDeleted,omitempty"`
 	isDirty              bool                 `bson:"isDirty,omitempty" json:"isDirty,omitempty"`
-	CategoryID           primitive.ObjectID   `bson:"categoryId,omitempty" json:"categoryId,omitempty"`
+	CategoryID           primitive.ObjectID   `bson:"categoryId" json:"categoryId"`
 	IsCategorized        bool                 `bson:"isCategorized" json:"isCategorized"`
 	originalState        *Product             `bson:"-" json:"-"`
 }
