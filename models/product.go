@@ -22,7 +22,7 @@ type Product struct {
 	ID                   primitive.ObjectID   `bson:"_id,omitempty" json:"_id,omitempty"`
 	URL                  string               `bson:"url" json:"url"`
 	CanonicalURL         string               `bson:"canonicalUrl" json:"canonicalUrl"`
-	CompanyName          string               `bson:"companyName, omitempty" json:"companyName"`
+	CompanyName          string               `bson:"companyName" json:"companyName"`
 	Probability          float64              `bson:"probability" json:"probability"`
 	Name                 string               `bson:"name" json:"name"`
 	Offers               []Offer              `bson:"offers" json:"offers"`
