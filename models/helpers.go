@@ -44,7 +44,7 @@ func Categorize(cfg *config.BizObjConfig) error {
 		WithBizObjConfig(*cfg),
 	)
 
-	products, err := prd.Query(prd, "isCategorized", false, "isDeleted", false)
+	products, err := prd.Query("isCategorized", false)
 	if err != nil {
 		return errors.NewChuxModelsError("Product.Categorize() Error querying database", err)
 	}
