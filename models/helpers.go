@@ -68,13 +68,14 @@ func Categorize(cfg *config.BizObjConfig) error {
 			}
 			pd.IsCategorized = true
 			pd.CategoryID = category.ID
+			err = pd.Save()
+			if err != nil {
+				return errors.NewChuxModelsError("Product.Categorize() Error setting product's CategoryID", err)
+			}
 			
 			createdCategories[index] = category
 		}
-		err := pd.Save()
-		if err != nil {
-			return errors.NewChuxModelsError("Product.Categorize() Error saving product", err)
-		}
+		
 		/*
 			After all categories are created for a product, iterate over the created categories and set the ParentID accordingly.
 			The ParentID of the first category in the list (index 0) will remain nil.
