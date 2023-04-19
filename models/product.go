@@ -46,6 +46,7 @@ type Product struct {
 	isDirty              bool                 `bson:"isDirty,omitempty" json:"isDirty,omitempty"`
 	CategoryID           primitive.ObjectID   `bson:"categoryId" json:"categoryId"`
 	IsCategorized        bool                 `bson:"isCategorized" json:"isCategorized"`
+	ImagesProcessed      bool                 `bson:"imagesProcessed" json:"imagesProcessed"`
 	originalState        *Product             `bson:"-" json:"-"`
 }
 
@@ -62,7 +63,7 @@ func (p *Product) Apply(opts ...func(interfaces.IModel)) {
 	}
 
 	_cfg = config.New()
-	
+
 	for _, opt := range opts {
 		opt(p)
 	}
@@ -87,7 +88,6 @@ func (p *Product) SetBizObjConfig(config config.BizObjConfig) {
 func (p *Product) SetDataStoresConfig(config config.DataStoresConfig) {
 	_cfg.DataStores = config
 }
-
 
 func (p *Product) GetCollectionName() string {
 	return "products"
@@ -269,15 +269,13 @@ func (p *Product) Load(id string) (interface{}, error) {
 }
 
 func (p *Product) Query(args ...interface{}) ([]db.IMongoDocument, error) {
-    results, err := mongoDB.Query(p, args...)
-    if err != nil {
-        return nil, errors.NewChuxModelsError("Product.Query() Error occurred querying Products", err)
-    }
+	results, err := mongoDB.Query(p, args...)
+	if err != nil {
+		return nil, errors.NewChuxModelsError("Product.Query() Error occurred querying Products", err)
+	}
 
-    return results, nil
+	return results, nil
 }
-
-
 
 func (p *Product) GetAll() ([]db.IMongoDocument, error) {
 	mongoDB := &db.MongoDB{}
