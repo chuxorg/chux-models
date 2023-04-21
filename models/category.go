@@ -29,10 +29,10 @@ type Category struct {
 
 // Creates a NewCategory with Options
 func NewCategory(opts ...func(interfaces.IModel)) *Category {
-	
+
 	c := &Category{}
 	c.Apply(opts...)
-	
+
 	return c
 }
 
@@ -44,7 +44,7 @@ func (c *Category) Apply(opts ...func(interfaces.IModel)) {
 	}
 
 	_cfg = config.New()
-	
+
 	for _, option := range opts {
 		option(c)
 	}
@@ -65,11 +65,13 @@ func (c *Category) Apply(opts ...func(interfaces.IModel)) {
 func (c *Category) SetLoggingLevel(level string) {
 	_cfg.Logging.Level = level
 }
+
 // Sets the BizObj Config
 func (c *Category) SetBizObjConfig(config config.BizObjConfig) {
 	_cfg = &config
 }
-// Sets the DataStoreConfig 
+
+// Sets the DataStoreConfig
 func (c *Category) SetDataStoresConfig(config config.DataStoresConfig) {
 	_cfg.DataStores = config
 }
@@ -79,11 +81,11 @@ func (c *Category) GetCollectionName() string {
 }
 
 func (c *Category) GetDatabaseName() string {
-	return _cfg.DataStores.DataStoreMap["mongo"].DatabaseName
+	return os.Getenv("MONGO_DATABASE")
 }
 
 func (c *Category) GetURI() string {
-	return _cfg.DataStores.DataStoreMap["mongo"].URI
+	return os.Getenv("MONGO_URI")
 }
 
 func (c *Category) GetID() primitive.ObjectID {
@@ -274,14 +276,13 @@ func (c *Category) Load(id string) (interface{}, error) {
 }
 
 func (c *Category) Query(args ...interface{}) ([]db.IMongoDocument, error) {
-    results, err := mongoDB.Query(c, args...)
-    if err != nil {
-        return nil, errors.NewChuxModelsError("Category.Query() Error occurred querying Categories", err)
-    }
+	results, err := mongoDB.Query(c, args...)
+	if err != nil {
+		return nil, errors.NewChuxModelsError("Category.Query() Error occurred querying Categories", err)
+	}
 
-    return results, nil
+	return results, nil
 }
-
 
 // Marks a Model for deletion from the Data Store
 // when Save() is called, the Model will be deleted

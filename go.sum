@@ -1,3 +1,5 @@
+github.com/chuxorg/chux-crosscut v1.0.1 h1:2mwMY8zCsx4SKnDzRSDGZd+HFHLdokfh2EqoEzcMwkY=
+github.com/chuxorg/chux-crosscut v1.0.1/go.mod h1:y7w7f1fTs3AXArVW50UBEUcrU7CUr2Z1i2UQaNAc5xo=
 github.com/chuxorg/chux-datastore v1.2.3 h1:COkc8HxcNyBC0agQsEmqczvdlHA/+n6Yloz8KyfP+H4=
 github.com/chuxorg/chux-datastore v1.2.3/go.mod h1:X80SGgvWdvMa1SBf2GaIUa7m4vQSSpMT1rujr/ohBmo=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

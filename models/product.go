@@ -9,7 +9,6 @@ import (
 	"github.com/chuxorg/chux-models/config"
 	"github.com/chuxorg/chux-models/errors"
 	"github.com/chuxorg/chux-models/interfaces"
-
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -94,11 +93,11 @@ func (p *Product) GetCollectionName() string {
 }
 
 func (p *Product) GetDatabaseName() string {
-	return _cfg.DataStores.DataStoreMap["mongo"].DatabaseName
+	return os.Getenv("MONGO_DATABASE")
 }
 
 func (p *Product) GetURI() string {
-	return _cfg.DataStores.DataStoreMap["mongo"].URI
+	return os.Getenv("MONGO_URI")
 }
 
 func (p *Product) GetID() primitive.ObjectID {

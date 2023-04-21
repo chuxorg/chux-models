@@ -54,7 +54,7 @@ func (a *Article) Apply(opts ...func(interfaces.IModel)) {
 	}
 
 	_cfg = config.New()
-	
+
 	for _, opt := range opts {
 		opt(a)
 	}
@@ -85,11 +85,11 @@ func (a *Article) GetCollectionName() string {
 }
 
 func (a *Article) GetDatabaseName() string {
-	return _cfg.DataStores.DataStoreMap["mongo"].DatabaseName
+	return os.Getenv("MONGO_DATABASE")
 }
 
 func (a *Article) GetURI() string {
-	return _cfg.DataStores.DataStoreMap["mongo"].URI
+	return os.Getenv("MONGO_URI")
 }
 
 func (a *Article) GetID() primitive.ObjectID {
@@ -208,12 +208,12 @@ func (a *Article) Load(id string) (interface{}, error) {
 }
 
 func (a *Article) Query(args ...interface{}) ([]db.IMongoDocument, error) {
-    results, err := mongoDB.Query(a, args...)
-    if err != nil {
-        return nil, errors.NewChuxModelsError("Article.Query() Error occurred querying Articles", err)
-    }
+	results, err := mongoDB.Query(a, args...)
+	if err != nil {
+		return nil, errors.NewChuxModelsError("Article.Query() Error occurred querying Articles", err)
+	}
 
-    return results, nil
+	return results, nil
 }
 
 // Marks a Model for deletion from the Data Store
