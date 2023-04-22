@@ -11,13 +11,13 @@ import (
 // TestNew tests the New function with different options.
 func TestNew(t *testing.T) {
 	os.Setenv("APP_ENV", "test")
-	article := New()
+	article := NewArticle()
 	assert.NotNil(t, article)
 	assert.Equal(t, "testdb", article.GetDatabaseName())
 	assert.Equal(t, "articles", article.GetCollectionName())
 	assert.Equal(t, "mongodb://localhost:27017", article.GetURI())
 
-	articleWithLoggingLevel := New(WithLoggingLevel("debug"))
+	articleWithLoggingLevel := NewArticle(WithLoggingLevel("debug"))
 
 	assert.NotNil(t, articleWithLoggingLevel)
 	assert.Equal(t, "debug", _cfg.Logging.Level)
@@ -43,7 +43,7 @@ func TestNew(t *testing.T) {
 		},
 	}
 
-	articleWithCustomConfig := New(WithBizObjConfig(customConfig))
+	articleWithCustomConfig := NewArticle(WithBizObjConfig(customConfig))
 
 	assert.NotNil(t, articleWithCustomConfig)
 	assert.Equal(t, "customdb", articleWithCustomConfig.GetDatabaseName())

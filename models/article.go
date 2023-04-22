@@ -63,6 +63,7 @@ func (a *Article) Apply(opts ...func(interfaces.IModel)) {
 		db.WithURI(a.GetURI()),
 		db.WithDatabaseName(a.GetDatabaseName()),
 		db.WithCollectionName(a.GetCollectionName()),
+		db.WithTimeout(30),
 	)
 
 	a.isNew = true
@@ -89,7 +90,14 @@ func (a *Article) GetDatabaseName() string {
 }
 
 func (a *Article) GetURI() string {
-	return os.Getenv("MONGO_URI")
+
+	username := os.Getenv("MONGO_USER_NAME")
+	password := os.Getenv("MONGO_PASSWORD")
+
+	uri := os.Getenv("MONGO_URI")
+	mongoURI := fmt.Sprintf(uri, username, password)
+
+	return mongoURI
 }
 
 func (a *Article) GetID() primitive.ObjectID {

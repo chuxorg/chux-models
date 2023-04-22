@@ -53,7 +53,7 @@ func (c *Category) Apply(opts ...func(interfaces.IModel)) {
 		db.WithURI(c.GetURI()),
 		db.WithDatabaseName(c.GetDatabaseName()),
 		db.WithCollectionName(c.GetCollectionName()),
-		db.WithTimeout(float64(_cfg.DataStores.DataStoreMap["mongo"].Timeout)),
+		db.WithTimeout(30),
 	)
 
 	c.isNew = true
@@ -85,7 +85,13 @@ func (c *Category) GetDatabaseName() string {
 }
 
 func (c *Category) GetURI() string {
-	return os.Getenv("MONGO_URI")
+	username := os.Getenv("MONGO_USER_NAME")
+	password := os.Getenv("MONGO_PASSWORD")
+
+	uri := os.Getenv("MONGO_URI")
+	mongoURI := fmt.Sprintf(uri, username, password)
+
+	return mongoURI
 }
 
 func (c *Category) GetID() primitive.ObjectID {

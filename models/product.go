@@ -55,6 +55,12 @@ func NewProduct(opts ...func(interfaces.IModel)) *Product {
 	return p
 }
 
+func NewProductWithLoggingLevel(level string) *Product {
+	return NewProduct(func(m interfaces.IModel) {
+		m.SetLoggingLevel(level)
+	})
+}
+
 func (p *Product) Apply(opts ...func(interfaces.IModel)) {
 	env := os.Getenv("APP_ENV")
 	if env == "" {
@@ -71,6 +77,7 @@ func (p *Product) Apply(opts ...func(interfaces.IModel)) {
 		db.WithURI(p.GetURI()),
 		db.WithDatabaseName(p.GetDatabaseName()),
 		db.WithCollectionName(p.GetCollectionName()),
+		db.WithTimeout(30),
 	)
 
 	p.isNew = true
@@ -97,7 +104,13 @@ func (p *Product) GetDatabaseName() string {
 }
 
 func (p *Product) GetURI() string {
-	return os.Getenv("MONGO_URI")
+	username := os.Getenv("MONGO_USER_NAME")
+	password := os.Getenv("MONGO_PASSWORD")
+
+	uri := os.Getenv("MONGO_URI")
+	mongoURI := fmt.Sprintf(uri, username, password)
+
+	return mongoURI
 }
 
 func (p *Product) GetID() primitive.ObjectID {
