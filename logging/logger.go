@@ -66,7 +66,7 @@ func MaskUri(uri string) (string, error) {
 
 	parsedURI, err := url.Parse(uri)
 	if err != nil {
-		return "", errors.NewChuxDataStoreError("failed to parse uri: %v", err)
+		return "", errors.NewChuxModelsError("failed to parse uri: %v", err)
 	}
 
 	if parsedURI.User != nil {
