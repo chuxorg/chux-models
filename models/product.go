@@ -6,9 +6,8 @@ import (
 	"os"
 
 	"github.com/chuxorg/chux-datastore/db"
-	"github.com/chuxorg/chux-models/config"
 	"github.com/chuxorg/chux-models/errors"
-	"github.com/chuxorg/chux-models/interfaces"
+	"github.com/chuxorg/chux-models/logging"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -46,32 +45,14 @@ type Product struct {
 	CategoryID           primitive.ObjectID   `bson:"categoryId" json:"categoryId"`
 	IsCategorized        bool                 `bson:"isCategorized" json:"isCategorized"`
 	ImagesProcessed      bool                 `bson:"imagesProcessed" json:"imagesProcessed"`
+	FilesProcessed       bool                 `bson:"filesProcessed" json:"filesProcessed"`
 	originalState        *Product             `bson:"-" json:"-"`
 }
 
-func NewProduct(opts ...func(interfaces.IModel)) *Product {
+func NewProduct() *Product {
+
+	logging.Debug("NewProduct was called")
 	p := &Product{}
-	p.Apply(opts...)
-	return p
-}
-
-func NewProductWithLoggingLevel(level string) *Product {
-	return NewProduct(func(m interfaces.IModel) {
-		m.SetLoggingLevel(level)
-	})
-}
-
-func (p *Product) Apply(opts ...func(interfaces.IModel)) {
-	env := os.Getenv("APP_ENV")
-	if env == "" {
-		env = "development"
-	}
-
-	_cfg = config.New()
-
-	for _, opt := range opts {
-		opt(p)
-	}
 
 	mongoDB = db.New(
 		db.WithURI(p.GetURI()),
@@ -83,42 +64,43 @@ func (p *Product) Apply(opts ...func(interfaces.IModel)) {
 	p.isNew = true
 	p.isDeleted = false
 	p.isDirty = false
-}
-
-func (p *Product) SetLoggingLevel(level string) {
-	_cfg.Logging.Level = level
-}
-func (p *Product) SetBizObjConfig(config config.BizObjConfig) {
-	_cfg = &config
-}
-func (p *Product) SetDataStoresConfig(config config.DataStoresConfig) {
-	_cfg.DataStores = config
+	return p
 }
 
 func (p *Product) GetCollectionName() string {
+	logging.Debug("Product.GetCollectionName() was called")
 	return "products"
 }
 
 func (p *Product) GetDatabaseName() string {
+	logging.Debug("Product.GetDatabaseName() was called")
 	return os.Getenv("MONGO_DATABASE")
 }
 
 func (p *Product) GetURI() string {
+	logging.Debug("Product.GetURI() was called")
 	username := os.Getenv("MONGO_USER_NAME")
 	password := os.Getenv("MONGO_PASSWORD")
 
 	uri := os.Getenv("MONGO_URI")
 	mongoURI := fmt.Sprintf(uri, username, password)
-
+	masked := fmt.Sprintf(uri, "********", "********")
+	logging.Info("Mongo URI: %s", masked)
 	return mongoURI
 }
 
 func (p *Product) GetID() primitive.ObjectID {
+	logging.Debug("Product.GetID() was called")
 	return p.ID
+}
+func (p *Product) SetID(id primitive.ObjectID) {
+	logging.Debug("Product.SetID() was called")
+	p.ID = id
 }
 
 // If the Model has changes, will return true
 func (p *Product) IsDirty() bool {
+	logging.Debug("Product.IsDirty() was called")
 	if p.originalState == nil {
 		return false
 	}
@@ -134,6 +116,7 @@ func (p *Product) IsDirty() bool {
 	}
 
 	p.isDirty = string(originalBytes) != string(currentBytes)
+	logging.Info("Product.IsDirty() isDirty: %t", p.isDirty)
 	return p.isDirty
 }
 
@@ -141,82 +124,43 @@ func (p *Product) IsDirty() bool {
 // the model is considered New. After the model is
 // Saved or Loaded it is no longer New
 func (p *Product) IsNew() bool {
+	logging.Debug("Product.IsNew() was called")
 	return p.isNew
-}
-
-func (p *Product) Exists() ([]db.IMongoDocument, error) {
-
-	docs, err := mongoDB.Query(p, "canonicalUrl", p.CanonicalURL, "description", p.Description)
-	if err != nil {
-		return nil, errors.NewChuxModelsError("Product.Exists() Error querying database", err)
-	}
-
-	return docs, nil
 }
 
 // Saves the Model to a Data Store
 func (p *Product) Save() error {
 
+	logging.Debug("Product.Save() was called")
 	if p.isNew {
-		var exists bool
-		changes := make(map[string][2]interface{})
-		products, err := p.Exists()
+		logging.Debug("Product.Save() Product is new")
+		companyName, err := ExtractCompanyName(p.CanonicalURL)
+		logging.Info("Product.Save() Extracted Company Name: %s", companyName)
 		if err != nil {
-			return errors.NewChuxModelsError("Product.Save() Error checking if product exists", err)
+			logging.Error("Product.Save() Error extracting Product.CompanyName: %s", err.Error())
+			return errors.NewChuxModelsError("Product.Save() Error extracting Product.CompanyName", err)
 		}
-
-		if len(products) > 0 {
-			product := products[0].(*Product)
-			var err error
-			p.ID = product.ID
-			//-- The p.Exists() call above will return a slice of products if there are any
-			//-- that match the canonicalUrl and description. We need to compare the
-			//-- incoming product with the existing product to see if there are any
-			//-- changes. If there are, we need to update the existing product with
-			changes, err = CompareProducts(*product, *p)
-			if err != nil {
-				return errors.NewChuxModelsError("Product.Save() Error comparing Products", err)
-			}
-			if len(changes) > 0 {
-				fmt.Println(changes)
-			}
-		}
-		exists = len(products) > 0
-		if !exists {
-			//-- This checks that the product does not exist in the database.
-			//-- it is required because new products that come in from a parse
-			//-- run will bring in dupes, which I don't want to save.
-
-			// -- Set the company name
-			p.CompanyName, err = ExtractCompanyName(p.CanonicalURL)
-			if err != nil {
-				return errors.NewChuxModelsError("Product.Save() Error extracting Product.CompanyName", err)
-			}
-			// -- Set the date created to now
-			p.DateCreated.Now()
-			// -- Set the category to uncategorized
-			p.IsCategorized = false
-			//-- Create a new document
-			err := mongoDB.Create(p)
-			if err != nil {
-				return errors.NewChuxModelsError("Product.Save() Error creating Product in MongoDB", err)
-			}
-		} else {
-			if len(changes) > 0 {
-				// The product could exist in Mongo yet was changed on the website on the last crawl
-				// If it did, the product will be updated with the new data
-				p.isNew = false
-				p.isDirty = true
-				//-- this will cause an update to the document
-				//TODO: Set and Save Price History, Inventory History, and other data
-				return p.Save()
-			}
+		p.CompanyName = companyName
+		// -- Set the date created to now
+		p.DateCreated.Now()
+		// -- Set the category to uncategorized
+		p.IsCategorized = false
+		// Mark product as processed
+		p.FilesProcessed = true
+		p.ImagesProcessed = false
+		//-- Upsert document
+		err = mongoDB.Upsert(p)
+		if err != nil {
+			logging.Error("Product.Save() Error creating/updating Product in MongoDB: %s", err.Error())
+			return errors.NewChuxModelsError("Product.Save() Error creating/updating Product in MongoDB", err)
 		}
 
 	} else if p.IsDirty() && !p.isDeleted {
+		logging.Debug("Product.Save() Product is dirty")
 		// Ensure the ID is a valid hex string representation of an ObjectID
 		_, err := primitive.ObjectIDFromHex(p.ID.Hex())
 		if err != nil {
+			logging.Error("Product.Save() invalid ObjectID: %s", err.Error())
 			return errors.NewChuxModelsError("Product.Save() invalid ObjectID", err)
 		}
 		// -- Set the date modified to now
@@ -224,12 +168,16 @@ func (p *Product) Save() error {
 		//--update this document
 		err = mongoDB.Update(p, p.ID.Hex())
 		if err != nil {
+			logging.Error("Product.Save() Error updating Product in MongoDB: %s", err.Error())
 			return errors.NewChuxModelsError("Product.Save() Error updating Product in MongoDB", err)
 		}
 	} else if p.isDeleted && !p.isNew {
+		logging.Info("Product.Save() Product is deleted")
 		//--delete the document
 		err := mongoDB.Delete(p, p.ID.Hex())
+		logging.Info("Product.Save() Product was deleted")
 		if err != nil {
+			logging.Error("Product.Save() Error deleting Product in MongoDB: %s", err.Error())
 			return errors.NewChuxModelsError("Product.Save() Error deleting Product in MongoDB", err)
 		}
 	}
@@ -250,63 +198,82 @@ func (p *Product) Save() error {
 		//--reset state
 		serialized, err = p.Serialize()
 		if err != nil {
+			logging.Error("Product.Save() Error serializing Product: %s", err.Error())
 			return errors.NewChuxModelsError("Product.Save() Error serializing Product.", err)
 		}
 		p.SetState(serialized)
 	}
 
+	logging.Info("Product.Save() Product saved successfully")
 	return nil
 }
 
 // Loads a Model from MongoDB by id
 func (p *Product) Load(id string) (interface{}, error) {
+	logging.Debug("Product.Load() Product was called")
+
 	retVal, err := mongoDB.GetByID(p, id)
 	if err != nil {
-		return nil, err
+		logging.Error("Product.Load() Error loading Product from MongoDB: %s", err.Error())
+		return nil, errors.NewChuxModelsError("Product.Load() Error loading Product from MongoDB", err)
 	}
 	product, ok := retVal.(*Product)
 	if !ok {
-		return nil, fmt.Errorf("unable to cast retVal to *Product")
+		logging.Error("Product.Load() unable to cast retVal to *Product")
+		return nil, errors.NewChuxModelsError("Product.Load() unable to cast retVal to *Product", err)
 	}
 	serialized, err := product.Serialize()
 	if err != nil {
-		return nil, fmt.Errorf("unable to set internal state")
+		logging.Error("Product.Load() Error serializing Product: %s", err.Error())
+		return nil, errors.NewChuxModelsError("Product.Load() Error serializing Product", err)
 	}
 	p.SetState(serialized)
 	p.isNew = false
 	p.isDirty = false
 	p.isDeleted = false
-
+	logging.Info("Product.Load() Product loaded successfully")
 	return retVal, nil
 }
 
 func (p *Product) Query(args ...interface{}) ([]db.IMongoDocument, error) {
+	logging.Debug("Product.Query() was called")
+
 	results, err := mongoDB.Query(p, args...)
 	if err != nil {
+		logging.Error("Product.Query() Error occurred querying Products: %s", err.Error())
 		return nil, errors.NewChuxModelsError("Product.Query() Error occurred querying Products", err)
 	}
-
+	logging.Info("Product.Query() Products queried successfully")
 	return results, nil
 }
 
 func (p *Product) GetAll() ([]db.IMongoDocument, error) {
+
+	logging.Debug("Product.GetAll() was called")
+
 	mongoDB := &db.MongoDB{}
 	products, err := mongoDB.GetAll(p)
+	logging.Info()
 	if err != nil {
-		return nil, err
+		logging.Error("Product.GetAll() Error occurred getting all Products: %s", err.Error())
+		return nil, errors.NewChuxModelsError("Product.GetAll() Error occurred getting all Products", err)
 	}
+
+	logging.Info("Product.GetAll() Products retrieved successfully")
 	return products, nil
 }
 
 // Marks a Model for deletion from the Data Store
 // when Save() is called, the Model will be deleted
 func (p *Product) Delete() error {
+	logging.Debug("Product.Delete() was called")
 	p.isDeleted = true
 	return nil
 }
 
 // Sets the internal state of the model.
 func (p *Product) SetState(json string) error {
+	logging.Debug("Product.SetState() was called")
 	// Store the current state as the original state
 	original := &Product{}
 	*original = *p
@@ -319,27 +286,37 @@ func (p *Product) SetState(json string) error {
 // Sets the internal state of the model of a new Product
 // from a JSON String.
 func (p *Product) Parse(json string) error {
+	logging.Debug("Product.Parse() was called")
 	err := p.SetState(json)
+	if err != nil {
+		logging.Error("Product.Parse() error setting state")
+		return errors.NewChuxModelsError("Product.Parse() Error setting state", err)
+	}
 	p.isNew = true // this is a new model
-	return err
+	return nil
 }
 
 func (p *Product) Search(args ...interface{}) ([]interface{}, error) {
+	logging.Debug("Product.Search() was called")
 	return nil, nil
 }
 
 func (p *Product) Serialize() (string, error) {
+	logging.Debug("Product.Serialize() was called")
 	bytes, err := json.Marshal(p)
 	if err != nil {
-		return "", err
+		logging.Error("Product.Serialize() error ocurred ", err)
+		return "", errors.NewChuxModelError("Product.Serialize() error occured", err)
 	}
 	return string(bytes), nil
 }
 
 func (p *Product) Deserialize(jsonData []byte) error {
+	logging.Debug("Product.Deserialize() was called")
 	err := json.Unmarshal(jsonData, p)
 	if err != nil {
-		return err
+		logging.Error("Product.Deserialize() error occurred ", err)
+		return errors.NewChuxModelError("Product.Deserialize() error occured", err)
 	}
 	return nil
 }
