@@ -6,16 +6,11 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/chuxorg/chux-datastore/db"
-	"github.com/chuxorg/chux-models/config"
 	"github.com/chuxorg/chux-models/errors"
+	"github.com/chuxorg/chux-models/logging"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
-
-// config for models package
-var _cfg *config.BizObjConfig
-var mongoDB *db.MongoDB
 
 func ExtractCompanyName(urlString string) (string, error) {
 	parsedURL, err := url.Parse(urlString)
@@ -37,63 +32,70 @@ func ExtractCompanyName(urlString string) (string, error) {
 }
 
 // Categorizes all products which are not already categorized
-func Categorize(cfg *config.BizObjConfig) error {
-	
-	// - Get all products that are not categorized
-	prd := NewProduct(
-		WithBizObjConfig(*cfg),
-	)
+func Categorize() error {
 
+	// - Get all products that are not categorized
+	prd := NewProduct()
 	products, err := prd.Query("isCategorized", false)
 	if err != nil {
+		logging.Error("Product.Categorize() Error querying database: %s", err.Error())
 		return errors.NewChuxModelsError("Product.Categorize() Error querying database", err)
 	}
 
+	logging.Info("Product.Categorize() Found %d products to categorize", len(products))
 	for _, product := range products {
 		// -- Iterate over the product's breadcrumbs and create categories
 		createdCategories := make([]*Category, len(product.(*Product).Breadcrumbs))
 		pd := product.(*Product)
 		for index, breadcrumb := range product.(*Product).Breadcrumbs {
 			// -- Create a category document
-			category := NewCategory(
-				WithBizObjConfig(*cfg),
-			)
+			category := NewCategory()
 			category.Name = breadcrumb.Name
 			category.Index = index
 			category.ParentID = primitive.NewObjectID()
 
 			err := category.Save()
 			if err != nil {
+				logging.Error("Product.Categorize() Error saving category: %s", err.Error())
 				return errors.NewChuxModelsError("Product.Categorize() Error saving category", err)
 			}
 			pd.IsCategorized = true
 			pd.CategoryID = category.ID
 			err = pd.Save()
 			if err != nil {
+				logging.Error("Product.Categorize() Error setting product CategoryID: %s", err.Error())
 				return errors.NewChuxModelsError("Product.Categorize() Error setting product's CategoryID", err)
 			}
-			
+
 			createdCategories[index] = category
 		}
-		
+
 		/*
 			After all categories are created for a product, iterate over the created categories and set the ParentID accordingly.
 			The ParentID of the first category in the list (index 0) will remain nil.
 			This will help with the tree structure of the categories.
 		*/
+		logging.Info("Product.Categorize() Setting ParentID for %d categories", len(createdCategories))
 		for index, category := range createdCategories {
 			if index > 0 {
 				category.ParentID = createdCategories[index-1].ID
 				err := category.Save()
 				if err != nil {
+					logging.Error("Product.Categorize() Error updating category ParentID: %s", err.Error())
 					return errors.NewChuxModelsError("Product.Categorize() Error updating category ParentID", err)
 				}
-			}else{
+			} else {
 				category.ParentID = category.ID
-				category.Save()
+				logging.Info("Product.Categorize() Setting ParentID for category %s to %s", category.ID.Hex(), category.ParentID.Hex())
+				err := category.Save()
+				if err != nil {
+					logging.Error("Product.Categorize() Error updating category ParentID: %s", err.Error())
+					return errors.NewChuxModelsError("Product.Categorize() Error updating category ParentID", err)
+				}
 			}
 		}
 	}
+	logging.Info("Product.Categorize() Done categorizing products")
 	return nil
 }
 
