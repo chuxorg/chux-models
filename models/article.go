@@ -6,9 +6,8 @@ import (
 	"os"
 
 	"github.com/chuxorg/chux-datastore/db"
-	"github.com/chuxorg/chux-models/config"
 	"github.com/chuxorg/chux-models/errors"
-	"github.com/chuxorg/chux-models/interfaces"
+	"github.com/chuxorg/chux-models/logging"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -41,23 +40,9 @@ type Article struct {
 	originalState    *Article           `bson:"-"`
 }
 
-func NewArticle(opts ...func(interfaces.IModel)) *Article {
+func NewArticle() *Article {
+	logging.Debug("NewArticle() called")
 	a := &Article{}
-	a.Apply(opts...)
-	return a
-}
-
-func (a *Article) Apply(opts ...func(interfaces.IModel)) {
-	env := os.Getenv("APP_ENV")
-	if env == "" {
-		env = "development"
-	}
-
-	_cfg = config.New()
-
-	for _, opt := range opts {
-		opt(a)
-	}
 
 	mongoDB = db.New(
 		db.WithURI(a.GetURI()),
@@ -69,58 +54,58 @@ func (a *Article) Apply(opts ...func(interfaces.IModel)) {
 	a.isNew = true
 	a.isDeleted = false
 	a.isDirty = false
-}
-
-func (a *Article) SetLoggingLevel(level string) {
-	_cfg.Logging.Level = level
-}
-func (a *Article) SetBizObjConfig(config config.BizObjConfig) {
-	_cfg = &config
-}
-func (a *Article) SetDataStoresConfig(config config.DataStoresConfig) {
-	_cfg.DataStores = config
+	return a
 }
 
 func (a *Article) GetCollectionName() string {
+	logging.Debug("Article.GetCollectionName() called")
 	return "articles"
 }
 
 func (a *Article) GetDatabaseName() string {
+	logging.Debug("Article.GetDatabaseName() called")
 	return os.Getenv("MONGO_DATABASE")
 }
 
 func (a *Article) GetURI() string {
-
+	logging.Debug("Article.GetURI() called")
 	username := os.Getenv("MONGO_USER_NAME")
 	password := os.Getenv("MONGO_PASSWORD")
 
 	uri := os.Getenv("MONGO_URI")
 	mongoURI := fmt.Sprintf(uri, username, password)
-
+	masked := fmt.Sprintf(uri, "********", "********")
+	logging.Info("Article.GetURI() returning: %s", masked)
 	return mongoURI
 }
 
 func (a *Article) GetID() primitive.ObjectID {
+	logging.Debug("Article.GetID() called")
 	return a.ID
 }
 
 // If the Model has changes, will return true
 func (a *Article) IsDirty() bool {
+	logging.Debug("Article.IsDirty() called")
 	if a.originalState == nil {
+		logging.Info("Article.IsDirty() original state is nil")
 		return false
 	}
 
 	originalBytes, err := a.originalState.Serialize()
 	if err != nil {
+		logging.Error("Article.IsDirty() error serializing original state", err)
 		return false
 	}
 
 	currentBytes, err := a.Serialize()
 	if err != nil {
+		logging.Info("Article.IsDirty() Could not Serialize current state.", err)
 		return false
 	}
 
 	a.isDirty = string(originalBytes) != string(currentBytes)
+	logging.Debug("Article.IsDirty() returning isDirty=%t", a.isDirty)
 	return a.isDirty
 }
 
@@ -128,30 +113,42 @@ func (a *Article) IsDirty() bool {
 // the model is considered New. After the model is
 // Saved or Loaded it is no longer New
 func (a *Article) IsNew() bool {
+	logging.Debug("Article.IsNew() called")
 	return a.isNew
+}
+
+func (a *Article) SetID(id primitive.ObjectID) {
+	logging.Debug("Article.SetID() called")
+	a.ID = id
 }
 
 // Saves the Model to a Data Store
 func (a *Article) Save() error {
+	logging.Debug("Article.Save() called")
 	if a.isNew {
+		logging.Debug("Article.Save() is new")
 		//--Create a new document
 		var err error
 		a.CompanyName, err = ExtractCompanyName(a.CanonicalURL)
 		if err != nil {
-			return errors.NewChuxModelsError("Artilce.Save() error extracting company name", err)
+			logging.Error("Article.Save() error extracting company name", err)
+			return errors.NewChuxModelsError("Article.Save() error extracting company name", err)
 		}
 		// Set the DateCreated to the current time
 		a.DateCreated.Now()
-		err = mongoDB.Create(a)
+		err = mongoDB.Upsert(a)
 		if err != nil {
-			errors.NewChuxModelsError("Artilce.Save() error creating Article", err)
+			errors.NewChuxModelsError("Article.Save() error creating Article", err)
 		}
+		logging.Info("Article.Save() Successfully created new Article")
 
 	} else if a.IsDirty() && !a.isDeleted {
+		logging.Info("Article.Save() is dirty and not isDeleted")
 		// Ensure the ID is a valid hex string representation of an ObjectID
 		_, err := primitive.ObjectIDFromHex(a.ID.Hex())
 		if err != nil {
-			msg := fmt.Sprintf("Artilce.Save() invalid ObjectID: %v", err)
+			msg := fmt.Sprintf("Article.Save() invalid ObjectID: %v", err)
+			logging.Error(msg)
 			return errors.NewChuxModelsError(msg, err)
 		}
 		// Set the DateModified to the current time
@@ -159,14 +156,19 @@ func (a *Article) Save() error {
 		//--update this document
 		err = mongoDB.Update(a, a.ID.Hex())
 		if err != nil {
-			return errors.NewChuxModelsError("Artilce.Save() error updating Article", err)
+			logging.Error("Article.Save() error updating Article", err)
+			return errors.NewChuxModelsError("Article.Save() error updating Article", err)
 		}
+		logging.Info("Article.Save() Successfully updated Article")
 	} else if a.isDeleted && !a.isNew {
+		logging.Info("Article.Save() isDeleted and not isNew")
 		//--delete the document
 		err := mongoDB.Delete(a, a.ID.Hex())
 		if err != nil {
-			return errors.NewChuxModelsError("Artilce.Save() error deleting Article", err)
+			logging.Error("Article.Save() error deleting Article", err)
+			return errors.NewChuxModelsError("Article.Save() error deleting Article", err)
 		}
+		logging.Info("Article.Save() Successfully deleted Article")
 	}
 
 	// If the Article has been deleted, then this is a new Article
@@ -178,16 +180,25 @@ func (a *Article) Save() error {
 	// serialized will help set the current state
 	var serialized string
 	var err error
+	logging.Info("Article.Save() Setting current state to original state after MongoDB operation.")
 	if a.isNew {
+		logging.Debug("Article.Save() is new so emptying original state")
 		serialized = ""
 		a.originalState = nil
 	} else {
+		logging.Info("Article.Save() is not new so setting original state to current state")
 		//--reset state
 		serialized, err = a.Serialize()
 		if err != nil {
-			return errors.NewChuxModelsError("Artilce.Save() unable to set current state", err)
+			logging.Error("Article.Save() unable to set current state", err)
+			return errors.NewChuxModelsError("Article.Save() unable to set current state", err)
 		}
-		a.SetState(serialized)
+		logging.Info("Article.Save() Setting internal state")
+		err = a.SetState(serialized)
+		if err != nil {
+			logging.Error("Article.Save() unable to set current state", err)
+			return errors.NewChuxModelsError("Article.Save() unable to set current state", err)
+		}
 	}
 
 	return nil
@@ -195,18 +206,23 @@ func (a *Article) Save() error {
 
 // Loads a Model from MongoDB by id
 func (a *Article) Load(id string) (interface{}, error) {
+	logging.Debug("Article.Load() called")
 	retVal, err := mongoDB.GetByID(a, id)
 	if err != nil {
-		return nil, errors.NewChuxModelsError("Artilce.Load() error loading Article", err)
+		logging.Error("Article.Load() error loading Article", err)
+		return nil, errors.NewChuxModelsError("Article.Load() error loading Article", err)
 	}
 	article, ok := retVal.(*Article)
 	if !ok {
-		return nil, errors.NewChuxModelsError("Artilce.Load() unable to cast retVal to *Article", err)
+		logging.Error("Article.Load() unable to cast retVal to *Article", err)
+		return nil, errors.NewChuxModelsError("Article.Load() unable to cast retVal to *Article", err)
 	}
 	serialized, err := article.Serialize()
 	if err != nil {
-		return nil, errors.NewChuxModelsError("Artilce.Load() unable to serialize Article", err)
+		logging.Error("Article.Load() unable to serialize Article", err)
+		return nil, errors.NewChuxModelsError("Article.Load() unable to serialize Article", err)
 	}
+	logging.Info("Article.Load() Setting internal state")
 	a.SetState(serialized)
 	a.isNew = false
 	a.isDirty = false
@@ -216,8 +232,10 @@ func (a *Article) Load(id string) (interface{}, error) {
 }
 
 func (a *Article) Query(args ...interface{}) ([]db.IMongoDocument, error) {
+	logging.Debug("Article.Query() called")
 	results, err := mongoDB.Query(a, args...)
 	if err != nil {
+		logging.Error("Article.Query() Error occurred querying Articles", err)
 		return nil, errors.NewChuxModelsError("Article.Query() Error occurred querying Articles", err)
 	}
 
@@ -227,48 +245,58 @@ func (a *Article) Query(args ...interface{}) ([]db.IMongoDocument, error) {
 // Marks a Model for deletion from the Data Store
 // when Save() is called, the Model will be deleted
 func (a *Article) Delete() error {
+	logging.Debug("Article.Delete() called")
 	a.isDeleted = true
 	return nil
 }
 
 // Sets the internal state of the model.
 func (a *Article) SetState(json string) error {
+	logging.Debug("Article.SetState() called")
 	// Store the current state as the original state
 	original := &Article{}
 	*original = *a
 	a.originalState = original
 
 	// Deserialize the new state
+	logging.Info("Article.SetState() deserializing new state and returning")
 	return a.Deserialize([]byte(json))
 }
 
 // Sets the internal state of the model of a new Product
 // from a JSON String.
 func (a *Article) Parse(json string) error {
+	logging.Debug("Article.Parse() called")
 	err := a.SetState(json)
 	a.isNew = true // this is a new model
 	if err != nil {
-		return errors.NewChuxModelsError("Artilce.Parse() unable to parse article", err)
+		logging.Error("Article.Parse() unable to parse article", err)
+		return errors.NewChuxModelsError("Article.Parse() unable to parse article", err)
 	}
 	return nil
 }
 
 func (a *Article) Search(args ...interface{}) ([]interface{}, error) {
+	logging.Debug("Article.Search() called")
 	return nil, nil
 }
 
 func (a *Article) Serialize() (string, error) {
+	logging.Debug("Article.Serialize() called")
 	bytes, err := json.Marshal(a)
 	if err != nil {
-		return "", errors.NewChuxModelsError("Artilce.Serialize() unable to serialize Article", err)
+		logging.Error("Article.Serialize() unable to serialize Article", err)
+		return "", errors.NewChuxModelsError("Article.Serialize() unable to serialize Article", err)
 	}
 	return string(bytes), nil
 }
 
 func (a *Article) Deserialize(jsonData []byte) error {
+	logging.Debug("Article.Deserialize() called")
 	err := json.Unmarshal(jsonData, a)
 	if err != nil {
-		return errors.NewChuxModelsError("Artilce.Deserialize() unable to deserialize Article", err)
+		logging.Error("Article.Deserialize() unable to deserialize Article", err)
+		return errors.NewChuxModelsError("Article.Deserialize() unable to deserialize Article", err)
 	}
 	return nil
 }

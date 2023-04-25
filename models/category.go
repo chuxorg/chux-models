@@ -7,9 +7,8 @@ import (
 	"reflect"
 
 	"github.com/chuxorg/chux-datastore/db"
-	"github.com/chuxorg/chux-models/config"
 	"github.com/chuxorg/chux-models/errors"
-	"github.com/chuxorg/chux-models/interfaces"
+	"github.com/chuxorg/chux-models/logging"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -28,26 +27,11 @@ type Category struct {
 }
 
 // Creates a NewCategory with Options
-func NewCategory(opts ...func(interfaces.IModel)) *Category {
+func NewCategory() *Category {
+
+	logging.Debug("NewCategory() called")
 
 	c := &Category{}
-	c.Apply(opts...)
-
-	return c
-}
-
-// Applies funcs to the Struct
-func (c *Category) Apply(opts ...func(interfaces.IModel)) {
-	env := os.Getenv("APP_ENV")
-	if env == "" {
-		env = "development"
-	}
-
-	_cfg = config.New()
-
-	for _, option := range opts {
-		option(c)
-	}
 
 	mongoDB = db.New(
 		db.WithURI(c.GetURI()),
@@ -59,47 +43,50 @@ func (c *Category) Apply(opts ...func(interfaces.IModel)) {
 	c.isNew = true
 	c.isDeleted = false
 	c.isDirty = false
+
+	return c
 }
 
-// Sets the Logging Level
-func (c *Category) SetLoggingLevel(level string) {
-	_cfg.Logging.Level = level
-}
-
-// Sets the BizObj Config
-func (c *Category) SetBizObjConfig(config config.BizObjConfig) {
-	_cfg = &config
-}
-
-// Sets the DataStoreConfig
-func (c *Category) SetDataStoresConfig(config config.DataStoresConfig) {
-	_cfg.DataStores = config
-}
-
+// GetCollectionName returns the name of the collection
 func (c *Category) GetCollectionName() string {
+	logging.Debug("GetCollectionName() called")
 	return "categories"
 }
 
+// GetDatabaseName returns the name of the database
 func (c *Category) GetDatabaseName() string {
+	logging.Debug("GetDatabaseName() called")
 	return os.Getenv("MONGO_DATABASE")
 }
 
 func (c *Category) GetURI() string {
+	logging.Debug("GetURI() called")
 	username := os.Getenv("MONGO_USER_NAME")
 	password := os.Getenv("MONGO_PASSWORD")
 
 	uri := os.Getenv("MONGO_URI")
 	mongoURI := fmt.Sprintf(uri, username, password)
+	masked := fmt.Sprintf(uri, "********", "********")
+	logging.Info("GetURI() returning: %s", masked)
 
 	return mongoURI
 }
 
 func (c *Category) GetID() primitive.ObjectID {
+	logging.Debug("GetID() called")
 	return c.ID
+}
+
+func (c *Category) SetID(id primitive.ObjectID) {
+	logging.Debug("SetID() called")
+	c.ID = id
 }
 
 // If the Model has changes, will return true
 func (c *Category) IsDirty() bool {
+
+	logging.Debug("IsDirty() called")
+
 	if c.originalState == nil {
 		return false
 	}
@@ -115,6 +102,7 @@ func (c *Category) IsDirty() bool {
 	}
 
 	c.isDirty = string(originalBytes) != string(currentBytes)
+	logging.Info("IsDirty() returning: %t", c.isDirty)
 	return c.isDirty
 }
 
@@ -122,11 +110,12 @@ func (c *Category) IsDirty() bool {
 // the model is considered New. After the model is
 // Saved or Loaded it is no longer New
 func (c *Category) IsNew() bool {
+	logging.Debug("IsNew() called")
 	return c.isNew
 }
 
 func (c *Category) Exists() ([]db.IMongoDocument, error) {
-
+	logging.Debug("Exists() called")
 	docs, err := mongoDB.Query(c, "name", c.Name)
 	if err != nil {
 		return nil, errors.NewChuxModelsError("Category.Exists() Error querying database", err)
@@ -138,6 +127,7 @@ func (c *Category) Exists() ([]db.IMongoDocument, error) {
 // CompareCategories takes two Category Structs  and compares their fields to see if anything has changed.
 // Returns a map containing the field names as keys and a tuple of the old and new values as the corresponding values.
 func CompareCategories(oldCategory, newCategory Category) (map[string][2]interface{}, error) {
+	logging.Debug("CompareCategories() called")
 	changes := make(map[string][2]interface{})
 
 	v1 := reflect.ValueOf(oldCategory)
@@ -163,57 +153,20 @@ func CompareCategories(oldCategory, newCategory Category) (map[string][2]interfa
 
 // Saves the Model to a Data Store
 func (c *Category) Save() error {
-
+	logging.Debug("Save() called")
 	if c.isNew {
-		var exists bool
-		changes := make(map[string][2]interface{})
-		categories, err := c.Exists()
+		logging.Info("Save() Category isNew")
+		// -- Set the date created to now
+		c.DateCreated.Now()
+		//-- Create a new document
+		err := mongoDB.Upsert(c)
 		if err != nil {
-			return errors.NewChuxModelsError("Category.Save() Error checking if category exists", err)
-		}
-
-		if len(categories) > 0 {
-			category := categories[0].(*Category)
-			var err error
-			c.ID = category.ID
-			//-- The c.Exists() call above will return a slice of categories if there are any
-			//-- that match the name. We need to compare the
-			//-- incoming category with the existing category in Mongo to see if there are any
-			//-- changes. If there are, we need to update the existing category in Mongo with
-			//-- the new values.
-			changes, err = CompareCategories(*category, *c)
-			if err != nil {
-				return errors.NewChuxModelsError("Category.Save() Error comparing Categories", err)
-			}
-			if len(changes) > 0 {
-				fmt.Println(changes)
-			}
-		}
-		exists = len(categories) > 0
-		if !exists {
-			//-- This checks that the category does not exist in the database.
-			//-- it is required because new categories that come in from a parse
-			//-- run will bring in dupes, which I don't want to save.
-
-			// -- Set the date created to now
-			c.DateCreated.Now()
-			//-- Create a new document
-			err := mongoDB.Create(c)
-			if err != nil {
-				return errors.NewChuxModelsError("Category.Save() Error creating Category in MongoDB", err)
-			}
-		} else {
-			if len(changes) > 0 {
-				// The product could exist in Mongo yet was changed on the website on the last crawl
-				// If it did, the product will be updated with the new data
-				c.isNew = false
-				c.isDirty = true
-				//-- this will cause an update to the document
-				return c.Save()
-			}
+			logging.Error("Save() Error creating Category in MongoDB: %s", err.Error())
+			return errors.NewChuxModelsError("Category.Save() Error creating Category in MongoDB", err)
 		}
 
 	} else if c.IsDirty() && !c.isDeleted {
+		logging.Info("Save() Category isDirty")
 		// Ensure the ID is a valid hex string representation of an ObjectID
 		_, err := primitive.ObjectIDFromHex(c.ID.Hex())
 		if err != nil {
@@ -227,9 +180,11 @@ func (c *Category) Save() error {
 			return errors.NewChuxModelsError("Category.Save() Error updating the Category in MongoDB", err)
 		}
 	} else if c.isDeleted && !c.isNew {
+		logging.Info("Category.Save() Category isDeleted and is not New")
 		//--delete the document
 		err := mongoDB.Delete(c, c.ID.Hex())
 		if err != nil {
+			logging.Error("Category.Save() Error deleting Category in MongoDB: %s", err.Error())
 			return errors.NewChuxModelsError("Category.Save() Error deleting Product in MongoDB", err)
 		}
 	}
@@ -254,66 +209,79 @@ func (c *Category) Save() error {
 		}
 		c.SetState(serialized)
 	}
-
+	logging.Info("Category.Save() returning successfully.")
 	return nil
 }
 
 // Loads a Model from MongoDB by id
 func (c *Category) Load(id string) (interface{}, error) {
-
+	logging.Debug("Category.Load() called")
 	retVal, err := mongoDB.GetByID(c, id)
 	if err != nil {
+		logging.Error("Category.Load() Error loading Category from MongoDB: %s", err.Error())
 		return nil, errors.NewChuxModelsError("Category.Load() Error loading Category from MongoDB", err)
 	}
 	category, ok := retVal.(*Category)
 	if !ok {
+		logging.Error("Category.Load() Error casting retVal to *Category")
 		return nil, fmt.Errorf("unable to cast retVal to *Category")
 	}
 	serialized, err := category.Serialize()
 	if err != nil {
+		logging.Error("Category.Load() Error serializing Category: %s", err.Error())
 		return nil, fmt.Errorf("unable to set internal state")
 	}
 	c.SetState(serialized)
 	c.isNew = false
 	c.isDirty = false
 	c.isDeleted = false
-
+	logging.Info("Category.Load() returning successfully.")
 	return retVal, nil
 }
 
 func (c *Category) Query(args ...interface{}) ([]db.IMongoDocument, error) {
+	logging.Debug("Category.Query() called")
 	results, err := mongoDB.Query(c, args...)
 	if err != nil {
+		logging.Error("Category.Query() Error occurred querying Categories: %s", err.Error())
 		return nil, errors.NewChuxModelsError("Category.Query() Error occurred querying Categories", err)
 	}
-
+	logging.Info("Category.Query() returning successfully." + fmt.Sprintf("Found %d Categories", len(results)))
 	return results, nil
 }
 
 // Marks a Model for deletion from the Data Store
 // when Save() is called, the Model will be deleted
 func (c *Category) Delete() error {
+	logging.Debug("Category.Delete() called")
 	c.isDeleted = true
 	return nil
 }
 
 // Sets the internal state of the model.
 func (c *Category) SetState(json string) error {
+	logging.Debug("Category.SetState() called")
 	// Store the current state as the original state
 	original := &Category{}
 	*original = *c
 	c.originalState = original
 
 	// Deserialize the new state
+	logging.Debug("Category.SetState() calling c.Deserialize()")
 	return c.Deserialize([]byte(json))
 }
 
 // Sets the internal state of the model of a new Category
 // from a JSON String.
 func (c *Category) Parse(json string) error {
+	logging.Debug("Category.Parse() called")
 	err := c.SetState(json)
+	if err != nil {
+		logging.Error("Category.Parse() Error setting state: %s", err.Error())
+		return errors.NewChuxModelsError("Category.Parse() Error setting state", err)
+	}
 	c.isNew = true // this is a new model
-	return err
+	return nil
 }
 
 func (c *Category) Search(args ...interface{}) ([]interface{}, error) {
@@ -321,17 +289,21 @@ func (c *Category) Search(args ...interface{}) ([]interface{}, error) {
 }
 
 func (c *Category) Serialize() (string, error) {
+	logging.Debug("Category.Serialize() called")
 	bytes, err := json.Marshal(c)
 	if err != nil {
-		return "", err
+		logging.Error("Category.Serialize() Error serializing Category: %s", err.Error())
+		return "", errors.NewChuxModelsError("Category.Serialize() Error serializing Category", err)
 	}
 	return string(bytes), nil
 }
 
 func (c *Category) Deserialize(jsonData []byte) error {
+	logging.Debug("Category.Deserialize() called")
 	err := json.Unmarshal(jsonData, c)
 	if err != nil {
-		return err
+		logging.Error("Category.Deserialize() Error deserializing Category: %s", err.Error())
+		return errors.NewChuxModelsError("Category.Deserialize() Error deserializing Category", err)
 	}
 	return nil
 }

@@ -2,7 +2,6 @@ package interfaces
 
 import (
 	"github.com/chuxorg/chux-datastore/db"
-	"github.com/chuxorg/chux-models/config"
 )
 
 // An Interface for Models that interact with a data store
@@ -25,9 +24,4 @@ type IModel interface {
 	Delete() error
 	// Sets the internal state of the model.
 	SetState(json string) error
-	// Applies variations of constructor functions to the model
-	Apply(opts ...func(IModel))
-	SetLoggingLevel(level string)
-	SetBizObjConfig(config config.BizObjConfig)
-	SetDataStoresConfig(config config.DataStoresConfig)
 }

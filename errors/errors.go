@@ -1,7 +1,5 @@
 package errors
 
-import "fmt"
-
 // ChuxModelsError is a custom error type
 // that wraps an error and adds a message
 // to the error.
@@ -20,7 +18,7 @@ type ChuxModelsError struct {
 	InnerErr error
 }
 
-// NewChuxParserError returns a new ChuxModelsError
+// NewChuxModelsError returns a new ChuxModelsError
 func NewChuxModelsError(message string, err error) *ChuxModelsError {
 	return &ChuxModelsError{
 		Message:  message,
@@ -36,12 +34,4 @@ func (e *ChuxModelsError) Error() string {
 // the message added by chux-parser.
 func (e *ChuxModelsError) Unwrap() error {
 	return e.InnerErr
-}
-
-// handleError is a helper function that handles
-// errors occuring in chux-models. This means
-// that it prints the error message and the
-// underlying error. It will also log the error
-func handleError(err error) {
-	fmt.Printf("Error: %v\n", err)
 }
