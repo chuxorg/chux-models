@@ -11,6 +11,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+var mongoDB *db.MongoDB
+
 type GTIN struct {
 	Type  string `bson:"type,omitempty" json:"type"`
 	Value string `bson:"value,omitempty" json:"value"`
