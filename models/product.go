@@ -308,7 +308,7 @@ func (p *Product) Serialize() (string, error) {
 	bytes, err := json.Marshal(p)
 	if err != nil {
 		logging.Error("Product.Serialize() error ocurred ", err)
-		return "", errors.NewChuxModelError("Product.Serialize() error occured", err)
+		return "", errors.NewChuxModelsError("Product.Serialize() error occured", err)
 	}
 	return string(bytes), nil
 }
@@ -318,7 +318,7 @@ func (p *Product) Deserialize(jsonData []byte) error {
 	err := json.Unmarshal(jsonData, p)
 	if err != nil {
 		logging.Error("Product.Deserialize() error occurred ", err)
-		return errors.NewChuxModelError("Product.Deserialize() error occured", err)
+		return errors.NewChuxModelsError("Product.Deserialize() error occured", err)
 	}
 	return nil
 }
