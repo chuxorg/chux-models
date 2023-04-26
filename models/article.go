@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/chuxorg/chux-datastore/db"
+	dbl "github.com/chuxorg/chux-datastore/logging"
 	"github.com/chuxorg/chux-models/errors"
 	"github.com/chuxorg/chux-models/logging"
 
@@ -40,17 +41,23 @@ type Article struct {
 	FilesProcessed   bool               `bson:"filesProcessed" json:"filesProcessed"`
 	ImagesProcessed  bool               `bson:"imagesProcessed" json:"imagesProcessed"`
 	originalState    *Article           `bson:"-"`
+	Logger           *logging.Logger    `bson:"-"`
 }
 
-func NewArticle() *Article {
-	logging.Debug("NewArticle() called")
+func NewArticle(options ...func(*Article)) *Article {
+
 	a := &Article{}
 
+	for _, option := range options {
+		option(a)
+	}
+	dbLogger := dbl.NewLogger(dbl.LogLevelDebug)
 	mongoDB = db.New(
 		db.WithURI(a.GetURI()),
 		db.WithDatabaseName(a.GetDatabaseName()),
 		db.WithCollectionName(a.GetCollectionName()),
 		db.WithTimeout(30),
+		db.WithLogger(*dbLogger),
 	)
 
 	a.isNew = true
@@ -59,17 +66,26 @@ func NewArticle() *Article {
 	return a
 }
 
+func NewArticleWithLogger(logger logging.Logger) func(*Article) {
+	return func(a *Article) {
+		a.Logger = &logger
+	}
+}
+
 func (a *Article) GetCollectionName() string {
-	logging.Debug("Article.GetCollectionName() called")
+	a.Logger.Debug("Article.GetCollectionName() called")
 	return "articles"
 }
 
 func (a *Article) GetDatabaseName() string {
-	logging.Debug("Article.GetDatabaseName() called")
+	a.Logger.Debug("Article.GetDatabaseName() called")
 	return os.Getenv("MONGO_DATABASE")
 }
 
 func (a *Article) GetURI() string {
+
+	logging := a.Logger
+
 	logging.Debug("Article.GetURI() called")
 	username := os.Getenv("MONGO_USER_NAME")
 	password := os.Getenv("MONGO_PASSWORD")
@@ -82,32 +98,32 @@ func (a *Article) GetURI() string {
 }
 
 func (a *Article) GetID() primitive.ObjectID {
-	logging.Debug("Article.GetID() called")
+	a.Logger.Debug("Article.GetID() called")
 	return a.ID
 }
 
 // If the Model has changes, will return true
 func (a *Article) IsDirty() bool {
-	logging.Debug("Article.IsDirty() called")
+	a.Logger.Debug("Article.IsDirty() called")
 	if a.originalState == nil {
-		logging.Info("Article.IsDirty() original state is nil")
+		a.Logger.Info("Article.IsDirty() original state is nil")
 		return false
 	}
 
 	originalBytes, err := a.originalState.Serialize()
 	if err != nil {
-		logging.Error("Article.IsDirty() error serializing original state", err)
+		a.Logger.Error("Article.IsDirty() error serializing original state", err)
 		return false
 	}
 
 	currentBytes, err := a.Serialize()
 	if err != nil {
-		logging.Info("Article.IsDirty() Could not Serialize current state.", err)
+		a.Logger.Info("Article.IsDirty() Could not Serialize current state.", err)
 		return false
 	}
 
 	a.isDirty = string(originalBytes) != string(currentBytes)
-	logging.Debug("Article.IsDirty() returning isDirty=%t", a.isDirty)
+	a.Logger.Debug("Article.IsDirty() returning isDirty=%t", a.isDirty)
 	return a.isDirty
 }
 
@@ -115,20 +131,21 @@ func (a *Article) IsDirty() bool {
 // the model is considered New. After the model is
 // Saved or Loaded it is no longer New
 func (a *Article) IsNew() bool {
-	logging.Debug("Article.IsNew() called")
+	a.Logger.Debug("Article.IsNew() called")
 	return a.isNew
 }
 
 func (a *Article) SetID(id primitive.ObjectID) {
-	logging.Debug("Article.SetID() called")
+	a.Logger.Debug("Article.SetID() called")
 	a.ID = id
 }
 
 // Saves the Model to a Data Store
 func (a *Article) Save() error {
-	logging.Debug("Article.Save() called")
+	logging := a.Logger
+	a.Logger.Debug("Article.Save() called")
 	if a.isNew {
-		logging.Debug("Article.Save() is new")
+		a.Logger.Debug("Article.Save() is new")
 		//--Create a new document
 		var err error
 		a.CompanyName, err = ExtractCompanyName(a.CanonicalURL)
@@ -210,6 +227,7 @@ func (a *Article) Save() error {
 
 // Loads a Model from MongoDB by id
 func (a *Article) Load(id string) (interface{}, error) {
+	logging := a.Logger
 	logging.Debug("Article.Load() called")
 	retVal, err := mongoDB.GetByID(a, id)
 	if err != nil {
@@ -236,6 +254,7 @@ func (a *Article) Load(id string) (interface{}, error) {
 }
 
 func (a *Article) Query(args ...interface{}) ([]db.IMongoDocument, error) {
+	logging := a.Logger
 	logging.Debug("Article.Query() called")
 	results, err := mongoDB.Query(a, args...)
 	if err != nil {
@@ -249,13 +268,14 @@ func (a *Article) Query(args ...interface{}) ([]db.IMongoDocument, error) {
 // Marks a Model for deletion from the Data Store
 // when Save() is called, the Model will be deleted
 func (a *Article) Delete() error {
-	logging.Debug("Article.Delete() called")
+	a.Logger.Debug("Article.Delete() called")
 	a.isDeleted = true
 	return nil
 }
 
 // Sets the internal state of the model.
 func (a *Article) SetState(json string) error {
+	logging := a.Logger
 	logging.Debug("Article.SetState() called")
 	// Store the current state as the original state
 	original := &Article{}
@@ -270,6 +290,8 @@ func (a *Article) SetState(json string) error {
 // Sets the internal state of the model of a new Product
 // from a JSON String.
 func (a *Article) Parse(json string) error {
+	logging := a.Logger
+
 	logging.Debug("Article.Parse() called")
 	err := a.SetState(json)
 	a.isNew = true // this is a new model
@@ -281,11 +303,12 @@ func (a *Article) Parse(json string) error {
 }
 
 func (a *Article) Search(args ...interface{}) ([]interface{}, error) {
-	logging.Debug("Article.Search() called")
+	a.Logger.Debug("Article.Search() called")
 	return nil, nil
 }
 
 func (a *Article) Serialize() (string, error) {
+	logging := a.Logger
 	logging.Debug("Article.Serialize() called")
 	bytes, err := json.Marshal(a)
 	if err != nil {
@@ -296,6 +319,7 @@ func (a *Article) Serialize() (string, error) {
 }
 
 func (a *Article) Deserialize(jsonData []byte) error {
+	logging := a.Logger
 	logging.Debug("Article.Deserialize() called")
 	err := json.Unmarshal(jsonData, a)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/chuxorg/chux-datastore/db"
+	dbl "github.com/chuxorg/chux-datastore/logging"
 	"github.com/chuxorg/chux-models/errors"
 	"github.com/chuxorg/chux-models/logging"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -49,18 +50,23 @@ type Product struct {
 	ImagesProcessed      bool                 `bson:"imagesProcessed" json:"imagesProcessed"`
 	FilesProcessed       bool                 `bson:"filesProcessed" json:"filesProcessed"`
 	originalState        *Product             `bson:"-" json:"-"`
+	Logger               *logging.Logger      `bson:"-" json:"-"`
 }
 
-func NewProduct() *Product {
+func NewProduct(options ...func(*Product)) *Product {
 
-	logging.Debug("NewProduct was called")
 	p := &Product{}
 
+	for _, option := range options {
+		option(p)
+	}
+	dbLogger := dbl.NewLogger(dbl.LogLevelDebug)
 	mongoDB = db.New(
 		db.WithURI(p.GetURI()),
 		db.WithDatabaseName(p.GetDatabaseName()),
 		db.WithCollectionName(p.GetCollectionName()),
 		db.WithTimeout(30),
+		db.WithLogger(*dbLogger),
 	)
 
 	p.isNew = true
@@ -69,17 +75,26 @@ func NewProduct() *Product {
 	return p
 }
 
+func NewProductWithLogger(logger logging.Logger) func(*Product) {
+	return func(p *Product) {
+		p.Logger = &logger
+	}
+}
+
 func (p *Product) GetCollectionName() string {
+	logging := p.Logger
 	logging.Debug("Product.GetCollectionName() was called")
 	return "products"
 }
 
 func (p *Product) GetDatabaseName() string {
+	logging := p.Logger
 	logging.Debug("Product.GetDatabaseName() was called")
 	return os.Getenv("MONGO_DATABASE")
 }
 
 func (p *Product) GetURI() string {
+	logging := p.Logger
 	logging.Debug("Product.GetURI() was called")
 	username := os.Getenv("MONGO_USER_NAME")
 	password := os.Getenv("MONGO_PASSWORD")
@@ -92,16 +107,19 @@ func (p *Product) GetURI() string {
 }
 
 func (p *Product) GetID() primitive.ObjectID {
+	logging := p.Logger
 	logging.Debug("Product.GetID() was called")
 	return p.ID
 }
 func (p *Product) SetID(id primitive.ObjectID) {
+	logging := p.Logger
 	logging.Debug("Product.SetID() was called")
 	p.ID = id
 }
 
 // If the Model has changes, will return true
 func (p *Product) IsDirty() bool {
+	logging := p.Logger
 	logging.Debug("Product.IsDirty() was called")
 	if p.originalState == nil {
 		return false
@@ -126,13 +144,14 @@ func (p *Product) IsDirty() bool {
 // the model is considered New. After the model is
 // Saved or Loaded it is no longer New
 func (p *Product) IsNew() bool {
+	logging := p.Logger
 	logging.Debug("Product.IsNew() was called")
 	return p.isNew
 }
 
 // Saves the Model to a Data Store
 func (p *Product) Save() error {
-
+	logging := p.Logger
 	logging.Debug("Product.Save() was called")
 	if p.isNew {
 		logging.Debug("Product.Save() Product is new")
@@ -212,6 +231,7 @@ func (p *Product) Save() error {
 
 // Loads a Model from MongoDB by id
 func (p *Product) Load(id string) (interface{}, error) {
+	logging := p.Logger
 	logging.Debug("Product.Load() Product was called")
 
 	retVal, err := mongoDB.GetByID(p, id)
@@ -238,6 +258,7 @@ func (p *Product) Load(id string) (interface{}, error) {
 }
 
 func (p *Product) Query(args ...interface{}) ([]db.IMongoDocument, error) {
+	logging := p.Logger
 	logging.Debug("Product.Query() was called")
 
 	results, err := mongoDB.Query(p, args...)
@@ -250,12 +271,12 @@ func (p *Product) Query(args ...interface{}) ([]db.IMongoDocument, error) {
 }
 
 func (p *Product) GetAll() ([]db.IMongoDocument, error) {
-
+	logging := p.Logger
 	logging.Debug("Product.GetAll() was called")
 
 	mongoDB := &db.MongoDB{}
 	products, err := mongoDB.GetAll(p)
-	logging.Info()
+
 	if err != nil {
 		logging.Error("Product.GetAll() Error occurred getting all Products: %s", err.Error())
 		return nil, errors.NewChuxModelsError("Product.GetAll() Error occurred getting all Products", err)
@@ -268,6 +289,7 @@ func (p *Product) GetAll() ([]db.IMongoDocument, error) {
 // Marks a Model for deletion from the Data Store
 // when Save() is called, the Model will be deleted
 func (p *Product) Delete() error {
+	logging := p.Logger
 	logging.Debug("Product.Delete() was called")
 	p.isDeleted = true
 	return nil
@@ -275,6 +297,7 @@ func (p *Product) Delete() error {
 
 // Sets the internal state of the model.
 func (p *Product) SetState(json string) error {
+	logging := p.Logger
 	logging.Debug("Product.SetState() was called")
 	// Store the current state as the original state
 	original := &Product{}
@@ -288,6 +311,7 @@ func (p *Product) SetState(json string) error {
 // Sets the internal state of the model of a new Product
 // from a JSON String.
 func (p *Product) Parse(json string) error {
+	logging := p.Logger
 	logging.Debug("Product.Parse() was called")
 	err := p.SetState(json)
 	if err != nil {
@@ -299,11 +323,13 @@ func (p *Product) Parse(json string) error {
 }
 
 func (p *Product) Search(args ...interface{}) ([]interface{}, error) {
+	logging := p.Logger
 	logging.Debug("Product.Search() was called")
 	return nil, nil
 }
 
 func (p *Product) Serialize() (string, error) {
+	logging := p.Logger
 	logging.Debug("Product.Serialize() was called")
 	bytes, err := json.Marshal(p)
 	if err != nil {
@@ -314,6 +340,7 @@ func (p *Product) Serialize() (string, error) {
 }
 
 func (p *Product) Deserialize(jsonData []byte) error {
+	logging := p.Logger
 	logging.Debug("Product.Deserialize() was called")
 	err := json.Unmarshal(jsonData, p)
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 	"reflect"
 
 	"github.com/chuxorg/chux-datastore/db"
+	dbl "github.com/chuxorg/chux-datastore/logging"
 	"github.com/chuxorg/chux-models/errors"
 	"github.com/chuxorg/chux-models/logging"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -24,20 +25,24 @@ type Category struct {
 	originalState *Category          `bson:"-" json:"-"`
 	DateCreated   CustomTime         `bson:"dateCreated,omitempty" json:"dateCreated,omitempty"`
 	DateModified  CustomTime         `bson:"dateModified,omitempty" json:"dateModified,omitempty"`
+	Logger        *logging.Logger    `bson:"-" json:"-"`
 }
 
 // Creates a NewCategory with Options
-func NewCategory() *Category {
-
-	logging.Debug("NewCategory() called")
+func NewCategory(options ...func(*Category)) *Category {
 
 	c := &Category{}
 
+	for _, option := range options {
+		option(c)
+	}
+	dbLogger := dbl.NewLogger(dbl.LogLevelDebug)
 	mongoDB = db.New(
 		db.WithURI(c.GetURI()),
 		db.WithDatabaseName(c.GetDatabaseName()),
 		db.WithCollectionName(c.GetCollectionName()),
 		db.WithTimeout(30),
+		db.WithLogger(*dbLogger),
 	)
 
 	c.isNew = true
@@ -47,20 +52,27 @@ func NewCategory() *Category {
 	return c
 }
 
+func NewCategoryWithLogger(logger logging.Logger) func(*Category) {
+	return func(c *Category) {
+		c.Logger = &logger
+	}
+}
+
 // GetCollectionName returns the name of the collection
 func (c *Category) GetCollectionName() string {
-	logging.Debug("GetCollectionName() called")
+	c.Logger.Debug("GetCollectionName() called")
 	return "categories"
 }
 
 // GetDatabaseName returns the name of the database
 func (c *Category) GetDatabaseName() string {
-	logging.Debug("GetDatabaseName() called")
+	c.Logger.Debug("GetDatabaseName() called")
 	return os.Getenv("MONGO_DATABASE")
 }
 
 func (c *Category) GetURI() string {
-	logging.Debug("GetURI() called")
+	logging := c.Logger
+	c.Logger.Debug("GetURI() called")
 	username := os.Getenv("MONGO_USER_NAME")
 	password := os.Getenv("MONGO_PASSWORD")
 
@@ -73,18 +85,20 @@ func (c *Category) GetURI() string {
 }
 
 func (c *Category) GetID() primitive.ObjectID {
+	logging := c.Logger
 	logging.Debug("GetID() called")
 	return c.ID
 }
 
 func (c *Category) SetID(id primitive.ObjectID) {
+	logging := c.Logger
 	logging.Debug("SetID() called")
 	c.ID = id
 }
 
 // If the Model has changes, will return true
 func (c *Category) IsDirty() bool {
-
+	logging := c.Logger
 	logging.Debug("IsDirty() called")
 
 	if c.originalState == nil {
@@ -110,11 +124,13 @@ func (c *Category) IsDirty() bool {
 // the model is considered New. After the model is
 // Saved or Loaded it is no longer New
 func (c *Category) IsNew() bool {
+	logging := c.Logger
 	logging.Debug("IsNew() called")
 	return c.isNew
 }
 
 func (c *Category) Exists() ([]db.IMongoDocument, error) {
+	logging := c.Logger
 	logging.Debug("Exists() called")
 	docs, err := mongoDB.Query(c, "name", c.Name)
 	if err != nil {
@@ -126,7 +142,8 @@ func (c *Category) Exists() ([]db.IMongoDocument, error) {
 
 // CompareCategories takes two Category Structs  and compares their fields to see if anything has changed.
 // Returns a map containing the field names as keys and a tuple of the old and new values as the corresponding values.
-func CompareCategories(oldCategory, newCategory Category) (map[string][2]interface{}, error) {
+func (c *Category) CompareCategories(oldCategory, newCategory Category) (map[string][2]interface{}, error) {
+	logging := c.Logger
 	logging.Debug("CompareCategories() called")
 	changes := make(map[string][2]interface{})
 
@@ -153,6 +170,7 @@ func CompareCategories(oldCategory, newCategory Category) (map[string][2]interfa
 
 // Saves the Model to a Data Store
 func (c *Category) Save() error {
+	logging := c.Logger
 	logging.Debug("Save() called")
 	if c.isNew {
 		logging.Info("Save() Category isNew")
@@ -215,6 +233,7 @@ func (c *Category) Save() error {
 
 // Loads a Model from MongoDB by id
 func (c *Category) Load(id string) (interface{}, error) {
+	logging := c.Logger
 	logging.Debug("Category.Load() called")
 	retVal, err := mongoDB.GetByID(c, id)
 	if err != nil {
@@ -240,6 +259,7 @@ func (c *Category) Load(id string) (interface{}, error) {
 }
 
 func (c *Category) Query(args ...interface{}) ([]db.IMongoDocument, error) {
+	logging := c.Logger
 	logging.Debug("Category.Query() called")
 	results, err := mongoDB.Query(c, args...)
 	if err != nil {
@@ -253,6 +273,7 @@ func (c *Category) Query(args ...interface{}) ([]db.IMongoDocument, error) {
 // Marks a Model for deletion from the Data Store
 // when Save() is called, the Model will be deleted
 func (c *Category) Delete() error {
+	logging := c.Logger
 	logging.Debug("Category.Delete() called")
 	c.isDeleted = true
 	return nil
@@ -260,6 +281,7 @@ func (c *Category) Delete() error {
 
 // Sets the internal state of the model.
 func (c *Category) SetState(json string) error {
+	logging := c.Logger
 	logging.Debug("Category.SetState() called")
 	// Store the current state as the original state
 	original := &Category{}
@@ -274,6 +296,7 @@ func (c *Category) SetState(json string) error {
 // Sets the internal state of the model of a new Category
 // from a JSON String.
 func (c *Category) Parse(json string) error {
+	logging := c.Logger
 	logging.Debug("Category.Parse() called")
 	err := c.SetState(json)
 	if err != nil {
@@ -289,6 +312,7 @@ func (c *Category) Search(args ...interface{}) ([]interface{}, error) {
 }
 
 func (c *Category) Serialize() (string, error) {
+	logging := c.Logger
 	logging.Debug("Category.Serialize() called")
 	bytes, err := json.Marshal(c)
 	if err != nil {
@@ -299,6 +323,7 @@ func (c *Category) Serialize() (string, error) {
 }
 
 func (c *Category) Deserialize(jsonData []byte) error {
+	logging := c.Logger
 	logging.Debug("Category.Deserialize() called")
 	err := json.Unmarshal(jsonData, c)
 	if err != nil {
