@@ -4,6 +4,8 @@ github.com/chuxorg/chux-datastore v1.2.9 h1:L39GLppT81dApXUfGEHwbxq5ojor8iqNLcEe
 github.com/chuxorg/chux-datastore v1.2.9/go.mod h1:AlhVegV9OiDMF+3DuC6R3oblWGwt2WrU9Sz49rGnb8k=
 github.com/chuxorg/chux-datastore v1.2.10 h1:e7GJHK4LLAzUfJETpyMZziHL2JJKV6PNQGoQPwQfMQE=
 github.com/chuxorg/chux-datastore v1.2.10/go.mod h1:AlhVegV9OiDMF+3DuC6R3oblWGwt2WrU9Sz49rGnb8k=
+github.com/chuxorg/chux-datastore v1.2.11 h1:1dpDZPLvMax7Ptdg238aByS6nHblh70IhPXG1+3Cix8=
+github.com/chuxorg/chux-datastore v1.2.11/go.mod h1:AlhVegV9OiDMF+3DuC6R3oblWGwt2WrU9Sz49rGnb8k=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
