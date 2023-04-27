@@ -156,7 +156,7 @@ func (a *Article) Save() error {
 		// Set the DateCreated to the current time
 		a.DateCreated.Now()
 		a.FilesProcessed = true
-		err = mongoDB.Upsert(a)
+		err = mongoDB.Upsert(a, "canonicalUrl")
 		if err != nil {
 			errors.NewChuxModelsError("Article.Save() error creating Article", err)
 		}

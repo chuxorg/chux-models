@@ -176,8 +176,8 @@ func (c *Category) Save() error {
 		logging.Info("Save() Category isNew")
 		// -- Set the date created to now
 		c.DateCreated.Now()
-		//-- Create a new document
-		err := mongoDB.Upsert(c)
+		//-- Create a new document or update an existing document
+		err := mongoDB.Upsert(c, "name")
 		if err != nil {
 			logging.Error("Save() Error creating Category in MongoDB: %s", err.Error())
 			return errors.NewChuxModelsError("Category.Save() Error creating Category in MongoDB", err)
