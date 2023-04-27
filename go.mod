@@ -3,7 +3,7 @@ module github.com/chuxorg/chux-models
 go 1.19
 
 require (
-	github.com/chuxorg/chux-datastore v1.2.12
+	github.com/chuxorg/chux-datastore v1.2.13
 	go.mongodb.org/mongo-driver v1.11.4
 )
 
