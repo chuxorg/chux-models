@@ -168,9 +168,9 @@ func (p *Product) Save() error {
 		p.IsCategorized = false
 		// Mark product as processed
 		p.FilesProcessed = true
-		
+
 		//-- Upsert document
-		err = mongoDB.Upsert(p, "canonicalURL")
+		err = mongoDB.Upsert(p, "canonicalUrl")
 		if err != nil {
 			logging.Error("Product.Save() Error creating/updating Product in MongoDB: %s", err.Error())
 			return errors.NewChuxModelsError("Product.Save() Error creating/updating Product in MongoDB", err)
