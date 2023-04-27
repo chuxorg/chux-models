@@ -42,9 +42,9 @@ type Product struct {
 	Style                string               `bson:"style,omitempty" json:"style,omitempty"`
 	DateCreated          CustomTime           `bson:"dateCreated,omitempty" json:"dateCreated,omitempty"`
 	DateModified         CustomTime           `bson:"dateModified,omitempty" json:"dateModified,omitempty"`
-	isNew                bool                 `bson:"isNew,omitempty" json:"isNew,omitempty"`
-	isDeleted            bool                 `bson:"isDeleted,omitempty" json:"isDeleted,omitempty"`
-	isDirty              bool                 `bson:"isDirty,omitempty" json:"isDirty,omitempty"`
+	isNew                bool                 `bson:"-" json:"-"`
+	isDeleted            bool                 `bson:"-" json:"-"`
+	isDirty              bool                 `bson:"-" json:"-"`
 	CategoryID           primitive.ObjectID   `bson:"categoryId" json:"categoryId"`
 	IsCategorized        bool                 `bson:"isCategorized" json:"isCategorized"`
 	ImagesProcessed      bool                 `bson:"imagesProcessed" json:"imagesProcessed"`

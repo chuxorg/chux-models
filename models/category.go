@@ -19,9 +19,9 @@ type Category struct {
 	Name          string             `bson:"name"`
 	Index         int                `bson:"index"`
 	ParentID      primitive.ObjectID `bson:"parent_id"`
-	isNew         bool               `bson:"isNew,omitempty" json:"isNew,omitempty"`
-	isDeleted     bool               `bson:"isDeleted,omitempty" json:"isDeleted,omitempty"`
-	isDirty       bool               `bson:"isDirty,omitempty" json:"isDirty,omitempty"`
+	isNew         bool               `bson:"-" json:"-"`
+	isDeleted     bool               `bson:"-" json:"-"`
+	isDirty       bool               `bson:"-" json:"-"`
 	originalState *Category          `bson:"-" json:"-"`
 	DateCreated   CustomTime         `bson:"dateCreated,omitempty" json:"dateCreated,omitempty"`
 	DateModified  CustomTime         `bson:"dateModified,omitempty" json:"dateModified,omitempty"`
